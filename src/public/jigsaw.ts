@@ -109,11 +109,11 @@ class JigsawFloor {
     const makeBackground = async (bgt: PIXI.Texture) => {
       this.bg2.addChild(this.border);
       let bgd = new PIXI.Sprite();
-      // bgd.texture = bgt;
+      bgd.texture = bgt;
 
-      bgd.texture = new PIXI.Texture({
-        source: this.bgt.source,
-      });
+      // bgd.texture = new PIXI.Texture({
+      //   source: this.bgt.source,
+      // });
 
       console.log("bgd.texture :", bgd.texture);
       bgd.anchor.set(0.5, 0.5);
@@ -566,12 +566,15 @@ class JigsawFloor {
       p.s.cursor = "pointer";
       let pickUp = false;
       const onDragStart = () => {
+        console.log("onDragStart");
         pickUp = true;
         this.zIndex++;
         p.s.zIndex = this.zIndex;
         p.s.on("touchmove", onDragMove);
       };
       const onDragEnd = () => {
+        console.log("onDragEnd");
+
         if (
           Math.abs(p.s.x - p.ox) < this.tSize / 5 &&
           Math.abs(p.s.y - p.oy) < this.tSize / 5
@@ -584,6 +587,7 @@ class JigsawFloor {
         }
       };
       const onDragMove = (event: any) => {
+        console.log("onDragMove");
         if (pickUp) {
           const newPosition = event.data.getLocalPosition(p.s.parent);
           p.s.x =
@@ -660,6 +664,7 @@ class JigsawFloor {
     cp.addChild(s);
     cp.removeChild(c);
     c.destroy({ children: true, texture: true });
+    // c.destroy({ children: true });
     return s;
   };
   containerToSprite = (c: PIXI.Container) => {
@@ -754,6 +759,7 @@ class JigsawFloor {
     fullP.eventMode = "static";
     fullP.cursor = "pointer";
     fullP.on("pointerdown", () => {
+      console.log('fullP.on "pointerdown"');
       fullPicture.parent?.removeChild(fullPicture);
     });
     const l = () => {
