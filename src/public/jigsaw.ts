@@ -90,13 +90,6 @@ class JigsawFloor {
     this.bgt = bgt.width > this.fSize ? this.textureSize(bgt, this.fSize) : bgt; // 원본 이미지가 퍼즐판보다 크면 리사이즈
     this.fullPicture = this.bgt;
 
-    // this.fullPicture = new PIXI.Texture({
-    //   // 원본 이미지 텍스처 복사
-    //   source: this.bgt.source,
-    // });
-
-    console.log("fullPicture :", this.fullPicture);
-
     this.fSize_h = r.fSize_h;
     this.tSize = (this.fSize / (t_num * 5 + 2)) * 7; // 조각 하나의 표시 크기
     this.shadowMargin = this.tSize / 30; // 그림자 여백
@@ -836,32 +829,51 @@ class JigsawFloor {
     fullP.eventMode = "static";
     fullP.cursor = "pointer";
     fullP.on("pointerdown", () => {
-      console.log('fullP.on "pointerdown"');
       fullPicture.parent?.removeChild(fullPicture);
     });
-    const l = () => {
+    const closeFullPicture = () => {
       // 닫기 버튼 액션
+      console.log("close full picture");
       fullPicture.parent?.removeChild(fullPicture);
       if (!this.selectMode) this.selectStart(this.r);
     };
-    const m = () => {
+    const shufflePTiles = () => {
       // 섞기 버튼 액션
+      console.log("shuffle pTiles");
       this.pTiles.forEach((p) => this.tileScatter(p, true));
     };
-    const bxu = boxButtonDraw(l, 0x000000, 0, 0, this.fSize, this.fSize / 10);
-    const byf = boxButtonDraw(m, 0x000000, 0, 0, this.fSize / 10, this.fSize);
-    const bye = boxButtonDraw(
-      l,
+    const closeFullPictureBoxButton = boxButtonDraw(
+      closeFullPicture,
+      0x000000,
+      0,
+      0,
+      this.fSize,
+      this.fSize / 10
+    );
+    const shufflePTilesBoxButton = boxButtonDraw(
+      shufflePTiles,
+      0x000000,
+      0,
+      0,
+      this.fSize / 10,
+      this.fSize
+    );
+    const closeFullPictureBoxButton2 = boxButtonDraw(
+      closeFullPicture,
       0x000000,
       this.fSize - this.fSize / 10,
       0,
       this.fSize / 10,
       this.fSize
     );
-    bxu.alpha = 0;
-    byf.alpha = 0;
-    bye.alpha = 0;
-    fullPicture.addChild(bxu, byf, bye);
+    closeFullPictureBoxButton.alpha = 0;
+    shufflePTilesBoxButton.alpha = 0;
+    closeFullPictureBoxButton2.alpha = 0;
+    fullPicture.addChild(
+      closeFullPictureBoxButton,
+      shufflePTilesBoxButton,
+      closeFullPictureBoxButton2
+    );
   };
   selectEnd = () => {
     // 이미지 선택 모드 종료
@@ -895,7 +907,7 @@ class JigsawFloor {
     }
     const selectC1 = new PIXI.Container();
     let sevenTiles: PIXI.Sprite[] = [];
-    // const sevenShadows: PIXI.Graphics[] = []
+    // const sevenShadows: PIXI.Graphics[] = [];
     // const myFilter = new PIXI.BlurFilter();
     // myFilter.blur = 7;
     const myFilter = new PIXI.BlurFilter({
