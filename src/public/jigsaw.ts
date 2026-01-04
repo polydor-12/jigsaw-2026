@@ -105,9 +105,10 @@ class JigsawFloor {
     this.file = file;
     this.main.addChild(this.bg0, this.bg1, this.bg2, this.bg3);
     this.bg2.sortableChildren = true; // bg2의 자식 요소들을 zIndex 기준으로 정렬
+
+    // 쿠키 정보 파싱하여 p 배열에 저장
     console.log("p :", cookieP);
     if (cookieP != undefined && cookieP != "") {
-      // 쿠키 정보 파싱하여 p 배열에 저장
       this.cookie += cookieP;
       const positions = cookieP.split("$");
       positions.forEach((position) => {
@@ -120,7 +121,6 @@ class JigsawFloor {
       this.bg2.addChild(this.border);
       const bgd = new PIXI.Sprite();
       bgd.texture = bgt; // 원본 이미지로 배경 스프라이트 생성
-
       // bgd.texture = new PIXI.Texture({
       //   source: this.bgt.source,
       // });
@@ -144,6 +144,7 @@ class JigsawFloor {
       s.position.set(this.fSize / 2, this.fSize / 2);
       bgd.mask = s;
       this.border.addChild(s, bgd);
+
       this.mTileData = makeMaskTilesData(this.tNum, 6); // 퍼즐 조각 모양 데이터 생성
       this.mTileData.forEach((data) =>
         data.forEach((tileData) => getMaskTile(tileData, 0))
