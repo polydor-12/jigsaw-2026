@@ -41,14 +41,50 @@ export interface myReturn {
 /* =======================
    Utils
 ======================= */
-export const mobileNow = () => {
-  const filter = "win16|win32|win64|mac|macintel";
-  if (navigator.platform) {
-    if (filter.indexOf(navigator.platform.toLowerCase()) < 0) {
-      return true;
-    }
+// export const mobileNow = () => {
+//   const filter = "win16|win32|win64|mac|macintel";
+//   if (navigator.platform) {
+//     if (filter.indexOf(navigator.platform.toLowerCase()) < 0) {
+//       return true;
+//     }
+//   }
+//   console.log(document.title);
+//   return false;
+// };
+
+/**
+ * 현재 기기가 모바일인지 확인하는 함수
+ * @returns {boolean} 모바일 기기일 경우 true, 데스크톱일 경우 false
+ */
+export const mobileNow = (): boolean => {
+  // 1. User Agent 문자열 확인 (가장 일반적인 방법)
+  const userAgent = navigator.userAgent.toLowerCase();
+  const mobileKeywords = [
+    /iphone/i,
+    /ipad/i,
+    /ipod/i,
+    /android/i,
+    /blackberry/i,
+    /windows phone/i,
+  ];
+
+  const isMobileUA = mobileKeywords.some((keyword) => userAgent.match(keyword));
+
+  // 2. Platform 정보 확인 (기존 로직 보완)
+  // 'linux'를 필터에 추가하여 리눅스 데스크톱이 모바일로 분류되는 것 방지
+  const platformFilter = "win16|win32|win64|mac|macintel|linux";
+  const platform = (navigator.platform || "").toLowerCase();
+
+  let isDesktopPlatform = false;
+  if (platform) {
+    isDesktopPlatform = platformFilter.indexOf(platform) !== -1;
   }
-  console.log(document.title);
+
+  // 3. 최종 판별
+  // UA가 모바일이면서, 데스크톱 플랫폼이 아닐 때 true 반환
+  if (isMobileUA) {
+    return true;
+  } // 리눅스 민트 등 데스크톱 리눅스는 위 필터에서 걸러지므로 false(데스크톱)를 반환하게 됨
   return false;
 };
 

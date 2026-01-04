@@ -14,102 +14,112 @@ import {
 } from "./myClasses";
 import { initFirebase } from "./firebase";
 
+// 개별 퍼즐 조각의 정보를 담는 인터페이스
 interface pTile {
-  cb: PIXI.Container;
-  cp: PIXI.Container;
-  nx: number;
-  ny: number;
-  ox: number;
-  oy: number;
-  s: PIXI.Sprite;
-  sb: PIXI.Sprite;
-  sp: PIXI.Sprite;
-  done: boolean;
-  zIndex: number;
-}
-interface mTile {
-  x: number;
-  y: number;
-  up: number;
-  down: number;
-  left: number;
-  right: number;
-  x_p: number;
-  y_p: number;
-  done: boolean;
+  cb: PIXI.Container; // 그림자 효과를 포함한 컨테이너
+  cp: PIXI.Container; // 실제 이미지 조각을 담는 컨테이너
+  nx: number; // 퍼즐판에서의 x 좌표 (인덱스)
+  ny: number; // 퍼즐판에서의 y 좌표 (인덱스)
+  ox: number; // 퍼즐판 위 완성 위치의 x 픽셀 좌표
+  oy: number; // 퍼즐판 위 완성 위치의 y 픽셀 좌표
+  s: PIXI.Sprite; // 최종적으로 화면에 표시될 스프라이트 (이미지 + 그림자)
+  sb: PIXI.Sprite; // 그림자 스프라이트
+  sp: PIXI.Sprite; // 이미지 스프라이트
+  done: boolean; // 완성되었는지 여부
+  zIndex: number; // 화면에 표시될 순서
 }
 
+// 퍼즐 조각의 모양(mask) 정보를 담는 인터페이스
+interface mTile {
+  x: number; // 퍼즐판에서의 x 좌표 (인덱스)
+  y: number; // 퍼즐판에서의 y 좌표 (인덱스)
+  up: number; // 위쪽 돌기 모양 ID
+  down: number; // 아래쪽 돌기 모양 ID
+  left: number; // 왼쪽 돌기 모양 ID
+  right: number; // 오른쪽 돌기 모양 ID
+  x_p: number; // 퍼즐판 위 완성 위치의 x 픽셀 좌표
+  y_p: number; // 퍼즐판 위 완성 위치의 y 픽셀 좌표
+  done: boolean; // 쿠키 정보에 따라 미리 완성되었는지 여부
+}
+
+// 직소 퍼즐 게임의 메인 클래스
 class JigsawFloor {
-  main = new PIXI.Container();
-  bg0 = new PIXI.Container();
-  bg1 = new PIXI.Container();
-  bg2 = new PIXI.Container();
-  bg3 = new PIXI.Container();
-  border = new PIXI.Container();
-  borderSprite = new PIXI.Sprite();
-  backgroundSprite = new PIXI.Sprite();
-  fullPicture: PIXI.Texture;
-  selectMode = false;
-  bgt: PIXI.Texture;
-  fSize: number;
-  fSize_h: number;
-  tSize: number;
-  shadowMargin: number;
-  bSize: number;
-  tNum: number;
-  folder: string;
-  file: string;
-  renderer: PIXI.Renderer;
-  zIndex: number = 1000;
-  r: myReturn;
-  p: number[][] = [];
-  cookie: string = "";
-  mTileData: mTile[][] = [];
-  pTiles: pTile[] = [];
-  mobileNow: boolean = mobileNow();
-  start: Function;
+  main = new PIXI.Container(); // 전체 게임 요소를 담는 최상위 컨테이너
+  bg0 = new PIXI.Container(); // 배경 레이어 0 (로딩 텍스트, 완성된 그림자 등)
+  bg1 = new PIXI.Container(); // 배경 레이어 1 (퍼즐판의 빈 공간 모양)
+  bg2 = new PIXI.Container(); // 배경 레이어 2 (움직이는 퍼즐 조각, 퍼즐판 테두리 등)
+  bg3 = new PIXI.Container(); // 배경 레이어 3 (이미지 선택 화면)
+  border = new PIXI.Container(); // 퍼즐판의 테두리 컨테이너
+  borderSprite = new PIXI.Sprite(); // 완성된 조각들이 합쳐진 퍼즐판 스프라이트
+  backgroundSprite = new PIXI.Sprite(); // 완성된 조각들의 그림자가 합쳐진 배경 스프라이트
+  fullPicture: PIXI.Texture; // 원본 이미지 텍스처
+  selectMode = false; // 이미지 선택 모드 활성화 여부
+  bgt: PIXI.Texture; // 배경 텍스처 (리사이즈된)
+  fSize: number; // 퍼즐판의 크기
+  fSize_h: number; // 전체 캔버스의 높이
+  tSize: number; // 퍼즐 조각 하나의 크기
+  shadowMargin: number; // 그림자 효과를 위한 여백
+  bSize: number; // 원본 이미지에서 조각을 잘라낼 때의 크기
+  tNum: number; // 한 변의 퍼즐 조각 갯수 (tNum x tNum)
+  folder: string; // 이미지 폴더 경로
+  file: string; // 이미지 파일명
+  renderer: PIXI.Renderer; // PIXI 렌더러
+  zIndex: number = 1000; // z-index 관리를 위한 변수
+  r: myReturn; // myClasses에서 반환된 전역 객체
+  p: number[][] = []; // 쿠키에서 읽어온 완성된 조각의 위치 정보
+  cookie: string = ""; // 쿠키 문자열
+  mTileData: mTile[][] = []; // 모든 퍼즐 조각의 모양 데이터
+  pTiles: pTile[] = []; // 생성된 모든 퍼즐 조각 객체 배열
+  mobileNow: boolean = mobileNow(); // 모바일 환경 여부
+  start: Function; // 게임 시작 함수
+
   constructor(
     r: myReturn,
     bgt: PIXI.Texture,
-    cookieP: string,
+    cookieP: string, // 쿠키에서 읽어온 위치 정보
     t_num: number,
     folder: string,
     file: string
   ) {
     this.r = r;
     this.renderer = r.renderer;
-    r.mc.addChild(this.main);
+    r.mc.addChild(this.main); // 메인 컨테이너를 stage에 추가
     this.fSize = r.fSize - ((r.fSize / (t_num * 5 + 2)) * 7) / 10;
     this.tNum = t_num;
     console.log("this.tNum :", this.tNum);
-    this.bgt = bgt.width > this.fSize ? this.textureSize(bgt, this.fSize) : bgt;
-    this.fullPicture = new PIXI.Texture({
-      source: this.bgt.source,
-    });
+    this.bgt = bgt.width > this.fSize ? this.textureSize(bgt, this.fSize) : bgt; // 원본 이미지가 퍼즐판보다 크면 리사이즈
+    this.fullPicture = this.bgt;
+
+    // this.fullPicture = new PIXI.Texture({
+    //   // 원본 이미지 텍스처 복사
+    //   source: this.bgt.source,
+    // });
 
     console.log("fullPicture :", this.fullPicture);
 
     this.fSize_h = r.fSize_h;
-    this.tSize = (this.fSize / (t_num * 5 + 2)) * 7;
-    this.shadowMargin = this.tSize / 30;
-    this.bSize = (this.bgt.width / (t_num * 5 + 2)) * 7;
+    this.tSize = (this.fSize / (t_num * 5 + 2)) * 7; // 조각 하나의 표시 크기
+    this.shadowMargin = this.tSize / 30; // 그림자 여백
+    this.bSize = (this.bgt.width / (t_num * 5 + 2)) * 7; // 원본 이미지에서 잘라낼 크기
     this.folder = folder;
     this.file = file;
     this.main.addChild(this.bg0, this.bg1, this.bg2, this.bg3);
-    this.bg2.sortableChildren = true;
+    this.bg2.sortableChildren = true; // bg2의 자식 요소들을 zIndex 기준으로 정렬
     console.log("p :", cookieP);
     if (cookieP != undefined && cookieP != "") {
+      // 쿠키 정보 파싱하여 p 배열에 저장
       this.cookie += cookieP;
-      let positions = cookieP.split("$");
+      const positions = cookieP.split("$");
       positions.forEach((position) => {
-        let xy = position.split("#");
+        const xy = position.split("#");
         this.p.push([Number(xy[0]), Number(xy[1])]);
       });
     }
     const makeBackground = async (bgt: PIXI.Texture) => {
+      // 퍼즐판 배경 및 테두리를 생성하는 함수
       this.bg2.addChild(this.border);
-      let bgd = new PIXI.Sprite();
-      bgd.texture = bgt;
+      const bgd = new PIXI.Sprite();
+      bgd.texture = bgt; // 원본 이미지로 배경 스프라이트 생성
 
       // bgd.texture = new PIXI.Texture({
       //   source: this.bgt.source,
@@ -120,49 +130,51 @@ class JigsawFloor {
       bgd.width = this.fSize;
       bgd.height = this.fSize;
       bgd.position.set(this.fSize / 2, this.fSize / 2);
-      let margin = (this.tSize * 2) / 7;
-      let svgContent = `<rect x="0" y="0" fill="#ffffff" stroke="#000000" stroke-miterlimit="10" 
+      const margin = (this.tSize * 2) / 7;
+      // SVG를 사용하여 퍼즐판 모양의 마스크 생성
+      const svgContent = `<rect x="0" y="0" fill="#ffffff" stroke="#000000" stroke-miterlimit="10" 
                 width="${this.fSize}" height="${this.fSize}"/>
                 <rect x="${margin}" y="${margin}" fill="#000000" stroke="#000000" stroke-miterlimit="10" 
                 width="${this.fSize - margin * 2}" height="${
         this.fSize - margin * 2
       }"/>`;
-      let svg = `<svg version="1.1" id="레이어_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px"
+      const svg = `<svg version="1.1" id="레이어_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px"
                 y="0px" width="${this.fSize}px" height="${this.fSize}px" viewBox="0 0 ${this.fSize} ${this.fSize}" 
                 enable-background="new 0 0 ${this.fSize} ${this.fSize}" 
                 xml:space="preserve">${svgContent}</svg>`;
-      let s = await svgToSprite(svg, this.fSize);
+      const s = await svgToSprite(svg, this.fSize);
       s.position.set(this.fSize / 2, this.fSize / 2);
       bgd.mask = s;
       this.border.addChild(s, bgd);
-      this.mTileData = makeMaskTilesData(this.tNum, 6);
+      this.mTileData = makeMaskTilesData(this.tNum, 6); // 퍼즐 조각 모양 데이터 생성
       this.mTileData.forEach((data) =>
         data.forEach((tileData) => getMaskTile(tileData, 0))
-      );
+      ); // 빈자리 그리기
       this.border.zIndex = 3;
-      let c2 = new PIXI.Container();
-      let b_v1 = boxDraw(
+      // 퍼즐판 그림자 생성
+      const c2 = new PIXI.Container();
+      const b_v1 = boxDraw(
         0x000000,
         0,
         0,
         (this.tSize * 2) / 7 - this.shadowMargin,
         this.fSize - this.shadowMargin
       );
-      let b_v2 = boxDraw(
+      const b_v2 = boxDraw(
         0x000000,
         this.fSize - (this.tSize * 2) / 7 + this.shadowMargin,
         this.shadowMargin,
         (this.tSize * 2) / 7 - this.shadowMargin,
         this.fSize - this.shadowMargin * 2
       );
-      let b_h1 = boxDraw(
+      const b_h1 = boxDraw(
         0x000000,
         0,
         0,
         this.fSize - this.shadowMargin,
         (this.tSize * 2) / 7 - this.shadowMargin
       );
-      let b_h2 = boxDraw(
+      const b_h2 = boxDraw(
         0x000000,
         0,
         this.fSize - (this.tSize * 2) / 7 + this.shadowMargin,
@@ -177,8 +189,16 @@ class JigsawFloor {
       // download_sprite_as_png(this.renderer, b_s, String(this.tNum) + "b.png")
       b_s.position.set(this.shadowMargin, this.shadowMargin);
       b_s.zIndex = 0;
-      let fontsize = this.mobileNow ? this.fSize / 80 : this.fSize / 40;
-      let loading = this.textPrepare("Loading", 0x000000, fontsize, 0, 0, true);
+      // 로딩 텍스트 생성
+      const fontsize = this.mobileNow ? this.fSize / 80 : this.fSize / 40;
+      const loading = this.textPrepare(
+        "Loading",
+        0x000000,
+        fontsize,
+        0,
+        0,
+        true
+      );
       loading.position.set(this.fSize / 2, this.fSize / 2);
       loading.zIndex = -1;
       this.bg0.addChild(loading);
@@ -186,11 +206,13 @@ class JigsawFloor {
       this.bg2.removeChild(c2);
     };
     const makeMaskTilesData = (tNum: number, rNum: number) => {
-      let tiles: mTile[][] = []; // 타일 초기화
+      // 퍼즐 조각들의 모양 데이터를 생성하는 함수
+      const tiles: mTile[][] = []; // 타일 배열 초기화
+      // 1. 빈 타일 데이터 구조 생성
       for (let y = 0; y < tNum; y++) {
-        let xt: mTile[] = [];
+        const xt: mTile[] = [];
         for (let x = 0; x < tNum; x++) {
-          let mT: mTile = {
+          const mT: mTile = {
             x: x,
             y: y,
             up: 0,
@@ -205,14 +227,15 @@ class JigsawFloor {
         }
         tiles.push(xt);
       }
+      // 2. 각 타일의 상하좌우 돌기 모양 랜덤하게 지정
       for (let y = 0; y < tNum; y++) {
         for (let x = 0; x < tNum; x++) {
-          let u = y == 0 ? 0 : tiles[x][y - 1].down;
-          let d =
-            y == tNum - 1 ? 0 : Math.floor(Math.random() * (rNum - 2)) + 1;
-          let l = x == 0 ? 0 : tiles[x - 1][y].right;
-          let r =
-            x == tNum - 1 ? 0 : Math.floor(Math.random() * (rNum - 2)) + 1;
+          const u = y == 0 ? 0 : tiles[x][y - 1].down; // 위쪽은 이웃한 타일의 아래쪽 돌기 모양을 이어받음
+          const d =
+            y == tNum - 1 ? 0 : Math.floor(Math.random() * (rNum - 2)) + 1; // 아래쪽은 랜덤 생성 (경계선 제외)
+          const l = x == 0 ? 0 : tiles[x - 1][y].right; // 왼쪽은 이웃한 타일의 오른쪽 돌기 모양을 이어받음
+          const r =
+            x == tNum - 1 ? 0 : Math.floor(Math.random() * (rNum - 2)) + 1; // 오른쪽은 랜덤 생성 (경계선 제외)
           tiles[x][y] = {
             x: x,
             y: y,
@@ -226,6 +249,7 @@ class JigsawFloor {
           };
         }
       }
+      // 3. 쿠키에 저장된 완성된 타일 정보 반영
       this.p.forEach((xy) => {
         console.log("xy :", xy);
         console.log("this.tNum :", this.tNum);
@@ -234,48 +258,55 @@ class JigsawFloor {
       return tiles;
     };
     const getTile = async (t: mTile) => {
-      let c = new PIXI.Container();
+      // 하나의 퍼즐 조각 스프라이트를 생성하는 함수
+      const c = new PIXI.Container();
       this.bg2.addChild(c);
-      let t_x = this.bSize / 2 + ((this.bSize * 5) / 7) * t.x;
-      let t_y = this.bSize / 2 + ((this.bSize * 5) / 7) * t.y;
-      let m = await getMaskTile(t, 1);
+      // 원본 이미지에서 잘라낼 위치 계산
+      const t_x = this.bSize / 2 + ((this.bSize * 5) / 7) * t.x;
+      const t_y = this.bSize / 2 + ((this.bSize * 5) / 7) * t.y;
+      const m = await getMaskTile(t, 1); // 조각 모양 마스크 생성
 
       // console.log('this.bSize :', this.bSize);
       // console.log('this.fSize :', this.fSize);
       let x = t_x - this.bSize / 2;
       let y = t_y - this.bSize / 2;
+      // 이미지 경계를 벗어나지 않도록 조정
       if (x + this.bSize > this.bgt.width) {
         x = this.bgt.width - this.bSize;
       }
       if (y + this.bSize > this.bgt.width) {
         y = this.bgt.width - this.bSize;
       }
-      let r = new PIXI.Rectangle(x, y, this.bSize, this.bSize);
-      // let b = this.bgt.clone();
+      const r = new PIXI.Rectangle(x, y, this.bSize, this.bSize);
+      // const b = this.bgt.clone();
 
-      let b = new PIXI.Texture({
+      const b = new PIXI.Texture({
+        // 텍스처에서 해당 부분만 잘라내기
         source: this.bgt.source,
         frame: r,
       });
 
-      let s = new PIXI.Sprite(b);
+      const s = new PIXI.Sprite(b); // 스프라이트 생성 및 마스크 적용
       s.width = this.tSize;
       s.height = this.tSize;
       m.anchor.set(0, 0);
       s.mask = m;
-      let rectangle = boxDraw(0x000000, 0, 0, this.tSize, this.tSize);
-      let mmm = await getMaskTile(t, 2);
+      // 조각 테두리 생성
+      const rectangle = boxDraw(0x000000, 0, 0, this.tSize, this.tSize);
+      const mmm = await getMaskTile(t, 2);
       rectangle.mask = mmm;
       mmm.anchor.set(0, 0);
-      let cb = new PIXI.Container();
+      // 그림자(cb)와 이미지(cp) 컨테이너 분리
+      const cb = new PIXI.Container();
       c.addChild(cb);
       cb.addChild(mmm, rectangle);
-      let cp = new PIXI.Container();
+      const cp = new PIXI.Container();
       c.addChild(cp);
       cp.addChild(m, s);
       c.pivot.set(this.tSize / 2, this.tSize / 2);
       c.position.set(t.x_p, t.y_p);
-      let p: pTile = {
+      // pTile 객체 생성 및 배열에 추가
+      const p: pTile = {
         cb: cb,
         cp: cp,
         nx: t.x,
@@ -291,27 +322,31 @@ class JigsawFloor {
       this.pTiles.push(p);
     };
     const getMaskTile = async (tile: mTile, sw: number) => {
+      // mTile 데이터로부터 SVG 마스크를 생성하는 함수
       let fill_color, stroke_width, stroke_color, block_color;
-      switch (sw) {
-        case 0:
+      switch (
+        sw // sw (switch) 값에 따라 스타일(색상, 테두리 두께) 결정
+      ) {
+        case 0: // 퍼즐판의 빈 공간 모양
           fill_color = "#d9e6f2";
           stroke_width = 'stroke-width="5"';
           stroke_color = "#d9e6f2";
           block_color = "#000000";
           break;
-        case 1:
+        case 1: // 퍼즐 조각 이미지의 마스크
           fill_color = "#ffffff";
           stroke_width = 'stroke-width="8"';
           stroke_color = "#ffffff";
           block_color = "#000000";
           break;
-        case 2:
+        case 2: // 퍼즐 조각 테두리의 마스크
           fill_color = "#ffffff";
           stroke_width = 'stroke-width="1"';
           stroke_color = "#ffffff";
           block_color = "#000000";
           break;
       }
+      // 방향별(상,하,좌,우) 돌기 모양 SVG path 데이터
       const mask_data = [
         // up
         [
@@ -370,72 +405,84 @@ class JigsawFloor {
                     s-107.938,36-107.938-81c0-144,111.631-25.2,90.031-54c-27-36-54.234-72-36.113-117L359.5,144v216L432.08,432z"`,
         ],
       ];
-
-      let direction = [tile.up, tile.down, tile.left, tile.right];
-      let path_f = `<path fill="${fill_color}" stroke="#000000" ${stroke_width} stroke-miterlimit="10" d=`;
-      let path_e = `/>`;
+      // tile 데이터의 up, down, left, right 값에 따라 SVG path 조합
+      const direction = [tile.up, tile.down, tile.left, tile.right];
+      const path_f = `<path fill="${fill_color}" stroke="#000000" ${stroke_width} stroke-miterlimit="10" d=`;
+      const path_e = `/>`;
       let svgContent_front = "";
       let svgContent_end = "";
       for (let i = 0; i < direction.length; i++) {
         if (direction[i] != 0) {
+          // 돌기가 있는 경우
           svgContent_front += path_f + mask_data[i][direction[i]] + path_e;
         } else {
+          // 돌기가 없는 경우 (직선)
           svgContent_end += mask_data[i][direction[i]];
         }
       }
-      let svg = `<svg version="1.1" id="레이어_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px"
+      // 최종 SVG 문자열 생성
+      const svg = `<svg version="1.1" id="레이어_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px"
                 y="0px" width="504px" height="504px" viewBox="0 0 504 504" enable-background="new 0 0 504 504" xml:space="preserve">       
                 ${svgContent_front} <polygon fill="${fill_color}" stroke="${stroke_color}" stroke-miterlimit="10" points="71.25,72.5 134.5,144 134.5,360 72,432.25 144,369.5 
                 360,369.5 431.75,432 368.5,360 368.5,144 432,72.25 360,135.5 144,135.5 "/>  ${svgContent_end} </svg>`;
+      // SVG를 PIXI 스프라이트로 변환
+      const s = await svgToSprite(svg, this.tSize);
 
-      let s = await svgToSprite(svg, this.tSize);
-
-      tile.x_p = this.tSize / 2 + ((this.tSize * 5) / 7) * tile.x;
+      tile.x_p = this.tSize / 2 + ((this.tSize * 5) / 7) * tile.x; // 타일의 최종 위치 계산
       tile.y_p = this.tSize / 2 + ((this.tSize * 5) / 7) * tile.y;
       if (sw == 0) {
+        // 퍼즐판의 빈 공간을 그릴 경우
         s.position.set(tile.x_p, tile.y_p);
         this.bg1.addChild(s);
       }
       return s;
     };
     const borderPrepare = () => {
+      // 퍼즐판(border)과 배경(background)을 상호작용 가능한 스프라이트로 준비하는 함수
       this.backgroundSprite = this.containerToSpriteAdd(this.bg1, this.bg0);
       this.borderSprite = this.containerToSpriteAdd(this.border);
       this.borderSprite.interactive = true;
       this.borderSprite.eventMode = "static";
       this.borderSprite.cursor = "pointer";
-      this.borderSprite.on("pointerdown", this.bgPrepare);
+      this.borderSprite.on("pointerdown", this.bgPrepare); // 클릭 시 원본 이미지 보기
     };
     const start = async () => {
+      // 게임 시작을 위한 전체 프로세스
       console.log("start : ");
-      await makeBackground(this.bgt);
+      await makeBackground(this.bgt); // 1. 배경 생성
       this.mTileData.forEach((ts) => {
+        // 2. 모든 조각 생성 (아직 화면에 흩뿌리지는 않음)
         ts.forEach((t) => getTile(t));
       });
       setTimeout(() => {
+        // 3. 약간의 딜레이 후, 조각들을 스프라이트화하고 흩뿌림
         this.pTiles.forEach((p) => this.makeSprite(p));
         // bgPrepare()
-        borderPrepare();
+        borderPrepare(); // 4. 퍼즐판 상호작용 준비
         // setTimeout(() => {
         //     download_sprite_as_png(f.renderer, this.backgroundSprite, String(this.tNum) + "c.png")
         //     download_sprite_as_png(f.renderer, this.borderSprite, String(this.tNum) + "a.png")
         // }, 4000)
-        this.selectStart(this.r);
+        this.selectStart(this.r); // 5. 이미지 선택 화면 시작
       }, 4000);
     };
     this.start = start;
     this.start();
   }
   makeSprite = (p: pTile) => {
+    // pTile 객체를 실제 움직일 수 있는 스프라이트로 만드는 함수
     const xyCookieWrite = (x: number, y: number) => {
-      let xy = String(x) + "#" + String(y);
+      // 완성된 조각의 위치를 쿠키에 저장하는 함수
+      const xy = String(x) + "#" + String(y);
       this.cookie += this.cookie == "" ? xy : "$" + xy;
       cookieWrite({ jigsawPosition: this.cookie });
     };
     const tileFix = (p: pTile) => {
+      // 조각이 제자리에 놓였을 때 처리하는 함수
       const tileFixAction = (p: pTile) => {
-        let oSize = p.sp.width;
-        let maxSize = (p.sp.width * 12) / 10;
+        // 조각이 맞춰지는 애니메이션
+        const oSize = p.sp.width;
+        const maxSize = (p.sp.width * 12) / 10;
         let sVector = this.mobileNow
           ? (maxSize - oSize) / 15
           : (maxSize - oSize) / 30;
@@ -463,6 +510,7 @@ class JigsawFloor {
             }
           }
           if (p.sp.width < oSize) {
+            // 애니메이션 종료 후
             p.sb.angle = 0;
             p.sp.angle = 0;
             p.sb.position.set(
@@ -470,7 +518,7 @@ class JigsawFloor {
               p.oy + this.shadowMargin
             );
             p.sp.position.set(p.ox, p.oy);
-            combineAfterAction();
+            combineAfterAction(); // 스프라이트 합치기 실행
           } else {
             requestAnimationFrame(sizeAction);
           }
@@ -478,6 +526,7 @@ class JigsawFloor {
         sizeAction();
       };
       const combineAfterAction = () => {
+        // 조각을 퍼즐판/배경 스프라이트에 합치는 작업
         this.borderSprite.texture = spriteCombine(this.borderSprite, p.sp);
         this.backgroundSprite.texture = spriteCombine(
           this.backgroundSprite,
@@ -486,40 +535,43 @@ class JigsawFloor {
           this.shadowMargin
         );
         p.done = true;
-        this.endingCheck();
+        this.endingCheck(); // 게임 종료 여부 확인
       };
       const spriteCombine = (
+        // 두 스프라이트를 하나의 텍스처로 합치는 함수 (성능 최적화)
         sb: PIXI.Sprite,
         s: PIXI.Sprite,
         mx: number = 0,
         my: number = 0
       ) => {
-        let nc = new PIXI.Container();
-        let sb_c = new PIXI.Sprite();
+        const nc = new PIXI.Container();
+        const sb_c = new PIXI.Sprite();
         // sb_c.texture = sb.texture.clone();
-        // sb_c.texture = sb.texture;
-        sb_c.texture = new PIXI.Texture({
-          source: this.bgt.source,
-        });
+        sb_c.texture = sb.texture;
+        // sb_c.texture = new PIXI.Texture({
+        //   // 원본 텍스처 사용
+        //   source: sb.texture.source,
+        // });
         this.bg2.addChild(nc);
         nc.addChild(sb_c, s);
         s.position.set(s.x + mx, s.y + my);
-        // let t = this.containerToSprite(nc).texture.clone();
-        let t = this.containerToSprite(nc).texture;
-        // let t = new PIXI.Texture({
+        // const t = this.containerToSprite(nc).texture.clone();
+        const t = this.containerToSprite(nc).texture; // 컨테이너를 텍스처로 변환
+        // const t = new PIXI.Texture({
         //   source: this.containerToSprite(nc).texture.source,
         // });
 
         this.bg2.removeChild(nc);
-        nc.destroy({ children: true, texture: true });
+        nc.destroy({ children: true });
         return t;
       };
       tileFixAction(p);
     };
     const moveByMouse = (p: pTile) => {
-      let c = p.s;
-      let parentWidth = this.fSize;
-      let parentHeight = this.fSize_h;
+      // (데스크탑) 마우스로 조각을 움직이는 로직
+      const c = p.s;
+      const parentWidth = this.fSize;
+      const parentHeight = this.fSize_h;
       c.interactive = true;
       c.eventMode = "static";
       c.cursor = "pointer";
@@ -561,6 +613,7 @@ class JigsawFloor {
       c.on("pointerdown", onDragStart);
     };
     const m_moveByMouse = (p: pTile) => {
+      // (모바일) 터치로 조각을 움직이는 로직
       p.s.interactive = true;
       p.s.eventMode = "static";
       p.s.cursor = "pointer";
@@ -602,15 +655,15 @@ class JigsawFloor {
       };
       p.s.on("touchstart", onDragStart).on("touchend", onDragEnd);
     };
-    p.sb = this.containerToSprite(p.cb);
+    p.sb = this.containerToSprite(p.cb); // 1. 이미지와 테두리(그림자용) 컨테이너를 각각 스프라이트로 변환
     p.sp = this.containerToSprite(p.cp);
-    let tS = this.tileShadow(p.sb);
+    const tS = this.tileShadow(p.sb); // 2. 그림자 스프라이트에 그림자 효과(블러) 적용
     tS.position.set(this.shadowMargin, this.shadowMargin);
-    let c = new PIXI.Container();
+    const c = new PIXI.Container(); // 3. 그림자와 이미지를 하나의 컨테이너에 합친 후, 다시 하나의 스프라이트로 변환
     this.bg2.addChild(c);
     c.addChild(tS, p.sb, p.sp);
     p.sb = tS;
-    p.s = this.containerToSprite(c);
+    p.s = this.containerToSprite(c); // 최종 조각 스프라이트
     p.s.anchor.set(0.5, 0.5);
     p.s.position.set(p.ox, p.oy);
     p.s.zIndex = 10 + Math.floor(Math.random() * 10);
@@ -619,13 +672,16 @@ class JigsawFloor {
     p.zIndex = p.nx + p.ny * this.tNum;
     this.bg2.addChild(p.s);
     if (!p.done) {
+      // 아직 맞춰지지 않은 조각
       if (this.mobileNow) {
+        // 4. 움직임 이벤트 추가 및 흩뿌리기
         m_moveByMouse(p);
       } else {
         moveByMouse(p);
       }
       this.tileScatter(p, true);
     } else {
+      // 이미 맞춰진 조각 (쿠키에서 로드)
       // border와 바탕화면에 그리기
       this.bg2.removeChild(p.s);
       this.border.addChild(p.sp);
@@ -644,7 +700,12 @@ class JigsawFloor {
   //   return mt;
   // };
   tileShadow = (sprite: PIXI.Sprite): PIXI.Sprite => {
-    sprite.filters = [new PIXI.BlurFilter(7)];
+    // 스프라이트에 블러 필터를 적용하여 그림자 효과를 주는 함수
+    sprite.filters = [
+      new PIXI.BlurFilter({
+        strength: 7,
+      }),
+    ];
     return sprite;
   };
   // SpriteAddShadow = (s: PIXI.Sprite) => {
@@ -656,18 +717,20 @@ class JigsawFloor {
   //     return this.containerToSpriteAdd(c)
   // }
   containerToSpriteAdd = (
+    // 컨테이너를 스프라이트로 변환하고 기존 컨테이너를 제거하는 헬퍼 함수
     c: PIXI.Container,
     cp: PIXI.Container = c.parent as PIXI.Container
   ) => {
-    let s = this.containerToSprite(c);
+    const s = this.containerToSprite(c);
     s.zIndex = c.zIndex;
     cp.addChild(s);
     cp.removeChild(c);
-    c.destroy({ children: true, texture: true });
+    c.destroy({ children: true });
     // c.destroy({ children: true });
     return s;
   };
   containerToSprite = (c: PIXI.Container) => {
+    // PIXI.Container를 PIXI.Sprite로 변환하는 함수 (렌더 텍스처 사용)
     // let r = new PIXI.Renderer()
     const tex = this.renderer.generateTexture({
       target: c, // 렌더링할 대상 (Container, Sprite 등)
@@ -679,34 +742,39 @@ class JigsawFloor {
     return combinedSprite;
   };
   textureSize = (bgt: PIXI.Texture, size: number) => {
-    let c = new PIXI.Container();
+    // 텍스처를 원하는 크기로 리사이즈하는 함수
+    const c = new PIXI.Container();
     this.main.addChild(c);
-    let s = new PIXI.Sprite(bgt);
+    const s = new PIXI.Sprite(bgt);
     s.width = size;
     s.height = size;
     c.addChild(s);
-    let ns = this.containerToSprite(c);
+    const ns = this.containerToSprite(c);
     this.main.removeChild(c);
     return ns.texture;
   };
   endingCheck = () => {
+    // 모든 조각이 맞춰졌는지 확인하는 함수
     let count = 0;
     this.pTiles.forEach((pt) => {
       count += pt.done == false ? 1 : 0;
     });
     if (count == 0) {
+      // 남은 조각이 없으면
       console.log("남은 타일 갯수 :", count);
-      cookieWrite({ jigsawFolder: "", jigsawFile: "", jigsawPosition: "" });
-      this.ending();
+      cookieWrite({ jigsawFolder: "", jigsawFile: "", jigsawPosition: "" }); // 쿠키 초기화
+      this.ending(); // 엔딩 애니메이션 실행
     }
   };
   ending = () => {
+    // 엔딩 애니메이션 함수
     // let s = this.containerToSpriteAdd(this.main)
-    let s = this.borderSprite;
+    const s = this.borderSprite;
     let p = this.fSize / 2;
     s.anchor.set(0.5, 0.5);
     s.position.set(this.fSize / 2, this.fSize / 2);
     const resizeP = () => {
+      // 확대 애니메이션
       s.width = p;
       s.height = p;
       p += this.fSize / 50;
@@ -714,7 +782,7 @@ class JigsawFloor {
         console.log("축하합니다 :");
         s.width = this.fSize + this.shadowMargin;
         s.height = this.fSize + this.shadowMargin;
-        this.selectStart(this.r);
+        this.selectStart(this.r); // 이미지 선택 화면으로 전환
       } else {
         requestAnimationFrame(resizeP);
       }
@@ -722,18 +790,22 @@ class JigsawFloor {
     resizeP();
   };
   tileScatter = (p: pTile, s: boolean = false) => {
+    // 조각을 특정 위치로 움직이는 애니메이션 (흩뿌리기)
     let x: number, y: number;
     if (s) {
+      // 랜덤 위치로 흩뿌리기
       x = Math.floor(Math.random() * this.fSize);
       y = Math.floor(Math.random() * (this.fSize_h - this.fSize) + this.fSize);
     } else {
+      // 원래 위치로
       x = p.ox;
       y = p.ox;
     }
-    let v = this.mobileNow ? 25 : 60;
-    let xVector = (p.s.x - x) / v;
-    let yVector = (p.s.y - y) / v;
+    const v = this.mobileNow ? 25 : 60;
+    const xVector = (p.s.x - x) / v;
+    const yVector = (p.s.y - y) / v;
     const tMove = () => {
+      // 부드럽게 이동하는 애니메이션 로직
       if (
         Math.abs(p.s.x - x) > Math.abs(xVector) &&
         Math.abs(p.s.y - y) > Math.abs(xVector)
@@ -749,11 +821,17 @@ class JigsawFloor {
     tMove();
   };
   bgPrepare = () => {
-    let fullP = new PIXI.Sprite();
-    let fullPicture = new PIXI.Container();
+    // 퍼즐판을 클릭했을 때 원본 이미지를 보여주는 함수
+    const fullP = new PIXI.Sprite();
+    const fullPicture = new PIXI.Container();
     this.bg2.addChild(fullPicture);
     fullPicture.addChild(fullP);
     fullP.texture = this.fullPicture;
+
+    // fullP.texture = new PIXI.Texture({
+    //   source: this.fullPicture.source,
+    // });
+
     fullPicture.zIndex = 1000000;
     fullP.interactive = true;
     fullP.eventMode = "static";
@@ -763,15 +841,17 @@ class JigsawFloor {
       fullPicture.parent?.removeChild(fullPicture);
     });
     const l = () => {
-      fullPicture?.parent?.removeChild(fullPicture);
+      // 닫기 버튼 액션
+      fullPicture.parent?.removeChild(fullPicture);
       if (!this.selectMode) this.selectStart(this.r);
     };
     const m = () => {
+      // 섞기 버튼 액션
       this.pTiles.forEach((p) => this.tileScatter(p, true));
     };
-    let bxu = boxButtonDraw(l, 0x000000, 0, 0, this.fSize, this.fSize / 10);
-    let byf = boxButtonDraw(m, 0x000000, 0, 0, this.fSize / 10, this.fSize);
-    let bye = boxButtonDraw(
+    const bxu = boxButtonDraw(l, 0x000000, 0, 0, this.fSize, this.fSize / 10);
+    const byf = boxButtonDraw(m, 0x000000, 0, 0, this.fSize / 10, this.fSize);
+    const bye = boxButtonDraw(
       l,
       0x000000,
       this.fSize - this.fSize / 10,
@@ -785,6 +865,7 @@ class JigsawFloor {
     fullPicture.addChild(bxu, byf, bye);
   };
   selectEnd = () => {
+    // 이미지 선택 모드 종료
     this.selectMode = false;
     this.bg3.parent?.removeChild(this.bg3);
     this.bg3 = new PIXI.Container();
@@ -793,6 +874,7 @@ class JigsawFloor {
     this.borderSprite.on("pointerdown", this.bgPrepare);
   };
   selectStart = (f: myReturn) => {
+    // 이미지 선택 화면을 시작하는 함수
     this.selectMode = true;
     this.borderSprite.off("pointerdown");
     this.borderSprite.on("pointerdown", this.selectEnd);
@@ -806,34 +888,38 @@ class JigsawFloor {
       }
     }
     interface positionData {
+      // 캐러셀 아이템의 위치, 크기, 각도 데이터 인터페이스
       x: number;
       y: number;
       size: number;
       angle: number;
     }
-    let selectC1 = new PIXI.Container();
+    const selectC1 = new PIXI.Container();
     let sevenTiles: PIXI.Sprite[] = [];
-    // let sevenShadows: PIXI.Graphics[] = []
-    // let myFilter = new PIXI.BlurFilter();
+    // const sevenShadows: PIXI.Graphics[] = []
+    // const myFilter = new PIXI.BlurFilter();
     // myFilter.blur = 7;
-    let myFilter = new PIXI.BlurFilter(7);
+    const myFilter = new PIXI.BlurFilter({
+      strength: 7,
+    });
     let fSize = f.fSize;
     let fSize_h = f.fSize_h;
     let KEY = 0;
     let movingON = false;
     let moveAccel = 0;
     let selectC2 = new PIXI.Container();
-    let degrees = [-122, -114, -104, -90, -76, -66, -58];
+    const degrees = [-122, -114, -104, -90, -76, -66, -58]; // 캐러셀 아이템들의 각도
     this.bg3.sortableChildren = true;
     selectC2.zIndex = 0;
     selectC1.zIndex = 1;
     this.bg3.addChild(selectC2, selectC1);
     selectC2.sortableChildren = true;
-    let startNum = Math.floor(Math.random() * sFileNames.length);
+    let startNum = Math.floor(Math.random() * sFileNames.length); // 시작 이미지 인덱스
     let endNum: number;
-    const plus = (n: number) => (n == sFileNames.length - 1 ? 0 : n + 1);
-    const minus = (n: number) => (n == 0 ? sFileNames.length - 1 : n - 1);
+    const plus = (n: number) => (n == sFileNames.length - 1 ? 0 : n + 1); // 다음 인덱스 계산
+    const minus = (n: number) => (n == 0 ? sFileNames.length - 1 : n - 1); // 이전 인덱스 계산
     const getPositionAndSize = (degree: number, floorSize: number = 100) => {
+      // 회전하는 캐러셀 UI의 위치/크기/각도를 계산하는 함수
       let radius = (floorSize * 4) / 5;
       let tSize = floorSize / 2;
       let x = floorSize / 2 + Math.cos(degreesToRadians(degree)) * radius;
@@ -844,6 +930,7 @@ class JigsawFloor {
       return r;
     };
     const setPositions = (
+      // 계산된 위치/크기/각도를 스프라이트에 적용하는 함수
       s: PIXI.Sprite | PIXI.Graphics,
       r: positionData,
       b: boolean = false
@@ -857,6 +944,7 @@ class JigsawFloor {
       s.zIndex = r.size - m;
     };
     const _makeSelectSprite = (
+      // 캐러셀에 표시될 이미지 스프라이트를 생성하는 내부 함수 (사용되지 않음)
       degree: number,
       t: PIXI.Texture,
       c: PIXI.Container,
@@ -871,28 +959,29 @@ class JigsawFloor {
       return s;
     };
     const makeSelectSprite = (
+      // 캐러셀에 표시될 이미지 스프라이트를 생성하는 함수 (그림자 포함)
       degree: number,
       t: PIXI.Texture,
       c: PIXI.Container,
       floorSize: number = 100
     ) => {
-      let s = new PIXI.Sprite(t);
-      let td = new PIXI.Container();
-      let b = boxDraw(0x000000, 0, 0, s.width);
+      const s = new PIXI.Sprite(t);
+      const td = new PIXI.Container();
+      const b = boxDraw(0x000000, 0, 0, s.width);
       td.addChild(b);
       b.position.set(s.width / 20, s.width / 20);
       c.addChild(td);
-      let sb = this.containerToSprite(td);
+      const sb = this.containerToSprite(td);
       c.removeChild(td);
-      let tf = new PIXI.Container();
+      const tf = new PIXI.Container();
       sb.alpha = 0.7;
       sb.filters = [myFilter];
       sb.position.set(s.width / 20, s.width / 20);
       tf.addChild(sb, s);
-      let r = getPositionAndSize(degree, floorSize);
+      const r = getPositionAndSize(degree, floorSize);
       // console.log('b.x, b.y :', b.x, b.y);
-      let ns = this.containerToSprite(tf);
-      // let ns = sb
+      const ns = this.containerToSprite(tf);
+      // const ns = sb
       ns.anchor.set(0.5, 0.5);
       setPositions(ns, r);
       c.addChild(ns);
@@ -900,22 +989,24 @@ class JigsawFloor {
       return ns;
     };
     const drawSpriteAndShadow = (
+      // 스프라이트와 그림자를 그리는 함수
       degree: number,
       s: PIXI.Sprite | PIXI.Graphics,
       floorSize: number = 100,
       b: boolean = false
     ) => {
-      let r = getPositionAndSize(degree, floorSize);
+      const r = getPositionAndSize(degree, floorSize);
       setPositions(s, r, b);
     };
     const makeSelectSpriteShadow = (
+      // 선택 스프라이트의 그림자를 만드는 함수 (사용되지 않음)
       degree: number,
       t: PIXI.Texture,
       c: PIXI.Container,
       floorSize: number = 100
     ) => {
-      let r = getPositionAndSize(degree, floorSize);
-      let s = boxDraw(0x000000, 0, 0, r.size);
+      const r = getPositionAndSize(degree, floorSize);
+      const s = boxDraw(0x000000, 0, 0, r.size);
       setPositions(s, r, true);
       s.pivot.set(r.size / 2, r.size / 2);
       s.zIndex = r.size - 1;
@@ -924,18 +1015,19 @@ class JigsawFloor {
       return s;
     };
     const firstDrawTiles = () => {
+      // 캐러셀의 초기 타일들을 그리는 함수
       let num = startNum;
       for (let i = 0; i < 7; i++) {
-        let t = PIXI.Assets.get(sFileNames[num]);
-        let s = makeSelectSprite(degrees[i], t, selectC2, fSize);
+        const t = PIXI.Assets.get(sFileNames[num]);
+        const s = makeSelectSprite(degrees[i], t, selectC2, fSize);
         // let b = makeSelectSpriteShadow(degrees[i], t, selectC2, fSize)
         sevenTiles.push(s);
         // sevenShadows.push(b)
         num = plus(num);
       }
       endNum = minus(num);
-      let r = getPositionAndSize(-90, this.fSize);
-      let box = boxDraw(
+      const r = getPositionAndSize(-90, this.fSize);
+      const box = boxDraw(
         0xffffff,
         r.x - r.size,
         r.y - (r.size * 6) / 5,
@@ -948,19 +1040,21 @@ class JigsawFloor {
       selectC2.y = fSize - fSize / 8;
     };
     const swiftTiles = (direction: number) => {
+      // 캐러셀을 좌/우로 움직이는 애니메이션 함수
       movingON = true;
       let baseVector = this.mobileNow ? 7 : 15;
       baseVector -=
         moveAccel < baseVector / 2 ? moveAccel : Math.floor(baseVector / 2);
-      let t = sevenTiles;
+      const t = sevenTiles;
       // let bs = sevenShadows
       const tileM = (i: number, oDegree: number, nDegree: number) => {
-        let s = t[i];
-        // let b = bs[i]
+        const s = t[i];
+        // const b = bs[i]
         let thisDegree = oDegree;
-        let vector = (nDegree - oDegree) / baseVector;
+        const vector = (nDegree - oDegree) / baseVector;
         let index = 0;
         const moveLoop = () => {
+          // requestAnimationFrame을 이용한 부드러운 이동
           thisDegree += vector;
           if (index < baseVector / 3 || index > (baseVector * 2) / 3) {
             s.alpha = 1;
@@ -981,7 +1075,8 @@ class JigsawFloor {
         moveLoop();
       };
       const tileV = (i: number) => {
-        let s = t[i];
+        // 사라지는 애니메이션
+        const s = t[i];
         // let b = bs[i]
         const disappearLoop = () => {
           // b.alpha -= 1 / baseVector
@@ -996,6 +1091,7 @@ class JigsawFloor {
         disappearLoop();
       };
       const tileA = (directions: number) => {
+        // 나타나는 애니메이션
         let d: number;
         let t: PIXI.Texture;
         let s: PIXI.Sprite;
@@ -1065,17 +1161,20 @@ class JigsawFloor {
       }
     };
     const mainTitle = () => {
-      let fb = new PIXI.Container();
-      let fc = new PIXI.Container();
-      let fd = new PIXI.Container();
-      let myf = new PIXI.BlurFilter(7);
+      // 'Jigsaw', 'prev', 'next' 등의 텍스트와 버튼을 그리는 함수
+      const fb = new PIXI.Container();
+      const fc = new PIXI.Container();
+      const fd = new PIXI.Container();
+      const myf = new PIXI.BlurFilter({
+        strength: 7,
+      });
 
       selectC1.addChild(fb, fc, fd);
       const textDraw = () => {
-        let b = new PIXI.Sprite(
+        const b = new PIXI.Sprite(
           PIXI.Assets.get("assets/jigsaw/background.jpg")
         );
-        let JigSaw = this.textPrepare(
+        const JigSaw = this.textPrepare(
           "JigSaw",
           0xffffff,
           fSize / 10,
@@ -1085,7 +1184,7 @@ class JigsawFloor {
         );
         JigSaw.width = fSize / 2;
         JigSaw.height = fSize / 7;
-        let JigSawB = this.textPrepare(
+        const JigSawB = this.textPrepare(
           "JigSaw",
           0x000000,
           fSize / 10,
@@ -1095,16 +1194,30 @@ class JigsawFloor {
         );
         JigSawB.width = JigSaw.width;
         JigSawB.height = JigSaw.height;
-        let prev = this.textPrepare("prev", 0xffffff, fSize / 17, 0, 0, true);
+        const prev = this.textPrepare("prev", 0xffffff, fSize / 17, 0, 0, true);
         prev.width = fSize / 4;
         prev.height = fSize / 9;
-        let prevB = this.textPrepare("prev", 0x000000, fSize / 17, 0, 0, true);
+        const prevB = this.textPrepare(
+          "prev",
+          0x000000,
+          fSize / 17,
+          0,
+          0,
+          true
+        );
         prevB.width = prev.width;
         prevB.height = prev.height;
-        let next = this.textPrepare("next", 0xffffff, fSize / 17, 0, 0, true);
+        const next = this.textPrepare("next", 0xffffff, fSize / 17, 0, 0, true);
         next.width = prev.width;
         next.height = prev.height;
-        let nextB = this.textPrepare("next", 0x000000, fSize / 17, 0, 0, true);
+        const nextB = this.textPrepare(
+          "next",
+          0x000000,
+          fSize / 17,
+          0,
+          0,
+          true
+        );
         nextB.width = prev.width;
         nextB.height = prev.height;
         b.anchor.set(0.5, 0.5);
@@ -1119,8 +1232,8 @@ class JigsawFloor {
         prevB.position.set(fSize / 2 - fSize / 4, fSize / 2 + fSize / 3);
         fc.addChild(JigSaw, prev, next);
         fd.addChild(JigSawB, prevB, nextB);
-        let mask = this.containerToSprite(fc);
-        let shadow = this.containerToSprite(fd);
+        const mask = this.containerToSprite(fc);
+        const shadow = this.containerToSprite(fd);
         shadow.filters = [myf];
         b.mask = mask;
         shadow.position.set(fSize / 80, fSize / 80);
@@ -1129,19 +1242,24 @@ class JigsawFloor {
         fc.parent?.removeChild(fc, fd);
         // console.log('prev.x, prev.y, prev.width, prev.height :', prev.x, prev.y, prev.width, prev.height);
         const bpF = () => {
+          // 이전 이미지 버튼 액션
           if (!movingON) swiftTiles(LEFT);
           KEY = LEFT;
           moveAccel = 0;
         };
         const bnF = () => {
+          // 다음 이미지 버튼 액션
           if (!movingON) swiftTiles(RIGHT);
           KEY = RIGHT;
           moveAccel = 0;
         };
         const bbF = () => {
+          // 중앙 이미지를 클릭했을 때
           if (!selectTileNumberMode) {
+            // 퍼즐 조각 수 선택 모드로 전환
             console.log("selectTileNumber :", selectTileNumber);
             for (let i = 0; i < 3; i++) {
+              // 이미지 3개 앞당기기
               startNum = plus(startNum);
               endNum = plus(endNum);
             }
@@ -1154,23 +1272,26 @@ class JigsawFloor {
             this.folder = strings[0];
             this.file = strings[1];
             console.log("strings :", strings);
-            selectTileNumber();
+            selectTileNumber(); // 조각 수 선택 화면으로 전환
             selectTileNumberMode = true;
           } else {
+            // 최종 선택 완료
             for (let i = 0; i < 3; i++) {
+              // 이미지 3개 앞당기기
               startNum = plus(startNum);
             }
             let s = sFileNames[startNum];
             s = s.replace("assets/jigsaw/b/", "").replace(".jpg", "");
             console.log("s :", s);
             if (Number(s) != this.tNum) {
-              cookieWrite({ jigsawPosition: "" });
+              cookieWrite({ jigsawPosition: "" }); // 조각 수가 변경되면 쿠키 초기화
             }
             this.tNum = Number(s);
-            jigsawRestart(this.folder, this.file, this.tNum);
+            jigsawRestart(this.folder, this.file, this.tNum); // 선택한 정보로 게임 재시작
           }
         };
-        let bp = boxButtonDraw(
+        const bp = boxButtonDraw(
+          // 이전 버튼
           bpF,
           0x000000,
           0,
@@ -1178,7 +1299,8 @@ class JigsawFloor {
           prev.width,
           prev.height
         );
-        let bn = boxButtonDraw(
+        const bn = boxButtonDraw(
+          // 다음 버튼
           bnF,
           0x000000,
           fb.width - prev.width,
@@ -1186,7 +1308,8 @@ class JigsawFloor {
           prev.width,
           prev.height
         );
-        let bb = boxButtonDraw(
+        const bb = boxButtonDraw(
+          // 중앙 선택 버튼
           bbF,
           0x000000,
           (fb.width - (fb.width * 2) / 3) / 2,
@@ -1194,13 +1317,13 @@ class JigsawFloor {
           (fb.width * 2) / 3,
           (fb.width * 2) / 3
         );
-        // let bb = boxButtonDraw(this.selectEnd, 0x000000, (fb.width - fb.width * 2 / 3) / 2, (fb.width - fb.width * 1.2 / 2.2) / 2, fb.width * 2 / 3, fb.width * 2 / 3)
+        // const bb = boxButtonDraw(this.selectEnd, 0x000000, (fb.width - fb.width * 2 / 3) / 2, (fb.width - fb.width * 1.2 / 2.2) / 2, fb.width * 2 / 3, fb.width * 2 / 3)
 
-        bp.alpha = 0;
+        bp.alpha = 0; // 버튼 투명하게 설정
         bn.alpha = 0;
         bb.alpha = 0;
 
-        bp.on("pointerup", () => (KEY = 0));
+        bp.on("pointerup", () => (KEY = 0)); // 마우스 떼면 KEY 초기화
         bn.on("pointerup", () => (KEY = 0));
         fb.addChild(bp, bn, bb);
         // moveB(b)
@@ -1209,6 +1332,7 @@ class JigsawFloor {
       textDraw();
     };
     const selectTileNumber = () => {
+      // 퍼즐 조각 수를 선택하는 화면으로 전환하는 함수
       sFileNames = [];
       sevenTiles = [];
       const startNumSet = () => {
@@ -1218,7 +1342,8 @@ class JigsawFloor {
         }
       };
       for (let i = 0; i < 12; i++) {
-        let s = i + 4 > 9 ? String(i + 4) : "0" + String(i + 4);
+        // 조각 수 이미지 파일명 목록
+        const s = i + 4 > 9 ? String(i + 4) : "0" + String(i + 4);
         sFileNames.push("assets/jigsaw/b/" + s + ".jpg");
       }
       startNum = 0;
@@ -1229,12 +1354,13 @@ class JigsawFloor {
       this.bg3.addChild(selectC2);
       selectC2.zIndex = 0;
       selectC2.sortableChildren = true;
-      firstDrawTiles();
+      firstDrawTiles(); // 조각 수 캐러셀 그리기
     };
-    firstDrawTiles();
-    mainTitle();
+    firstDrawTiles(); // 초기 캐러셀 그리기
+    mainTitle(); // 메인 타이틀 및 버튼 그리기
   };
   textPrepare = (
+    // 텍스트 객체를 생성하는 유틸리티 함수
     text: string,
     color: number,
     font_size: number,
@@ -1252,8 +1378,13 @@ class JigsawFloor {
         join: "round", // 텍스트 외곽선을 부드럽게 처리 (추천 옵션)
       },
     };
-    let ty = new PIXI.TextStyle(b_style);
-    let t = new PIXI.Text(text, ty);
+    // const ty = new PIXI.TextStyle(b_style);
+    // const t = new PIXI.Text(text, ty);
+    const t = new PIXI.Text({
+      text,
+      style: b_style,
+    });
+
     t.style.fill = color;
     t.style.stroke = color;
     if (b) t.anchor.set(0.5, 0.5);
@@ -1267,14 +1398,17 @@ let r: myReturn;
 let f: JigsawFloor;
 let t_num: number;
 const jigsawFirstStart = async () => {
-  let cookie = cookieRead();
+  // 게임을 처음 시작할 때 실행되는 함수
+  const cookie = cookieRead(); // 쿠키 읽기
   let filename: string, folder: string, file: string;
   if (cookie.jigsawFolder == undefined || cookie.jigsawFolder == "") {
+    // 저장된 게임이 없으면 랜덤 이미지/조각 수로 시작
     folder = String(Math.floor(Math.random() * 5));
     file = String(Math.floor(Math.random() * 9));
     t_num = 7;
     cookieWrite({ jigsawFolder: folder, jigsawFile: file, jigsawNumber: "7" });
   } else {
+    // 저장된 게임 정보 로드
     folder = cookie.jigsawFolder;
     file = cookie.jigsawFile;
     t_num = cookie.jigsawNumber == undefined ? 10 : Number(cookie.jigsawNumber);
@@ -1286,7 +1420,7 @@ const jigsawFirstStart = async () => {
   filename = "assets/jigsaw/" + folder + "/0" + file + ".jpg";
   // console.log('filename :', filename);
   // cookie.jigsawPosition = ""
-  let sFileNames: string[] = [];
+  const sFileNames: string[] = []; // 선택 화면용 썸네일 이미지 목록
   for (let folder = 0; folder < 5; folder++) {
     for (let file = 0; file < 9; file++) {
       let s = "assets/jigsaw/" + String(folder) + "/s0" + String(file) + ".jpg";
@@ -1294,13 +1428,14 @@ const jigsawFirstStart = async () => {
       sFileNames.push(s);
     }
   }
-  let sFileNames2: string[] = [];
+  const sFileNames2: string[] = []; // 조각 수 선택 화면용 이미지 목록
   for (let i = 0; i < 12; i++) {
     let s = i + 4 > 9 ? String(i + 4) : "0" + String(i + 4);
     // console.log("assets/jigsaw/b/" + s + ".jpg");
     sFileNames2.push("assets/jigsaw/b/" + s + ".jpg");
   }
   const assetsToLoad = [
+    // 필요한 모든 이미지 에셋 미리 로드
     filename,
     ...sFileNames,
     ...sFileNames2,
@@ -1310,17 +1445,16 @@ const jigsawFirstStart = async () => {
   // 2. Assets.load를 사용하여 비동기로 로딩합니다.
   // (이 코드는 async 함수 내부에 있어야 합니다.)
   try {
-    await PIXI.Assets.load(assetsToLoad);
+    await PIXI.Assets.load(assetsToLoad); // 비동기로 에셋 로드
 
     console.log("t_num :", t_num);
 
     // 3. PIXI.Assets.get()을 사용하여 텍스처를 즉시 가져옵니다.
     console.log("filename :", filename);
 
-    const mainTexture = PIXI.Assets.get(filename);
-    console.log("mainTexture :", mainTexture);
+    const mainTexture = PIXI.Assets.get(filename); // 로드된 텍스처 가져오기
 
-    f = new JigsawFloor(
+    f = new JigsawFloor( // JigsawFloor 인스턴스 생성하여 게임 시작
       r,
       mainTexture, // Loader.shared...texture 대신 Assets.get 사용
       cookie.jigsawPosition,
@@ -1333,19 +1467,22 @@ const jigsawFirstStart = async () => {
   }
 };
 const jigsawRestart = (folder: string, file: string, t_num: number = 7) => {
+  // 새로운 퍼즐 설정으로 게임을 재시작하는 함수
   console.log("folder, file :", folder, file);
   cookieWrite({
+    // 선택한 설정을 쿠키에 저장
     jigsawFolder: folder,
     jigsawFile: file,
     jigsawNumber: String(t_num),
   });
-  location.href = "/";
+  location.href = "/"; // 페이지 새로고침하여 재시작
 };
 
 async function main() {
-  initFirebase();
-  r = await makeFloor();
-  await jigsawFirstStart();
+  // 어플리케이션의 메인 진입점
+  initFirebase(); // 파이어베이스 초기화
+  r = await makeFloor(); // 기본 PIXI 환경 설정 (myClasses.ts)
+  await jigsawFirstStart(); // 직소 퍼즐 시작
 }
 
 main();
