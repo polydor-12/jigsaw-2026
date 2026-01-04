@@ -124,8 +124,6 @@ class JigsawFloor {
       // bgd.texture = new PIXI.Texture({
       //   source: this.bgt.source,
       // });
-
-      console.log("bgd.texture :", bgd.texture);
       bgd.anchor.set(0.5, 0.5);
       bgd.width = this.fSize;
       bgd.height = this.fSize;
