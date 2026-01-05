@@ -174,25 +174,6 @@ export const makeFloor = async () => {
 /* =======================
    SVG → Sprite
 ======================= */
-// export const svgToSprite = (
-//   svg: string,
-//   width: number = -1,
-//   height: number = width
-// ) => {
-//   const encoded = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
-//   const texture = Texture.from(encoded);
-//   const sprite = new Sprite(texture);
-
-//   if (width !== -1) {
-//     sprite.width = width;
-//     sprite.height = height;
-//   }
-
-//   sprite.anchor.set(0.5);
-//   return sprite;
-// };
-
-// const svgCache = new Map<string, Texture>();
 
 export const svgToSprite = async (
   svg: string,
@@ -201,16 +182,33 @@ export const svgToSprite = async (
 ): Promise<PIXI.Sprite> => {
   const encoded = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
   const texture = await PIXI.Assets.load<PIXI.Texture>(encoded);
-
   const sprite = new PIXI.Sprite(texture);
 
   if (width !== -1) {
     sprite.width = width;
     sprite.height = height;
   }
-
   sprite.anchor.set(0.5);
+  return sprite;
+};
 
+export const svgToTexture = async (svg: string): Promise<PIXI.Texture> => {
+  const encoded = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  const texture = await PIXI.Assets.load<PIXI.Texture>(encoded);
+  return texture;
+};
+
+export const textureToSprite = (
+  texture: PIXI.Texture,
+  width: number,
+  height = width
+) => {
+  const sprite = new PIXI.Sprite(texture);
+  if (width !== -1) {
+    sprite.width = width;
+    sprite.height = height;
+  }
+  sprite.anchor.set(0.5);
   return sprite;
 };
 
@@ -309,17 +307,30 @@ export const cookieRead = () => {
 
 export const containerToSprite = (
   c: PIXI.Container,
-  renderer = myJigsawFloor[0]?.r.app.renderer
+  remove: boolean = false
 ) => {
   // PIXI.Container를 PIXI.Sprite로 변환하는 함수 (렌더 텍스처 사용)
-  const tex = renderer.generateTexture({
+  const tex = myJigsawFloor[0]?.renderer.generateTexture({
     target: c, // 렌더링할 대상 (Container, Sprite 등)
     resolution: 1, // 해상도 (기존 인자의 1에 해당)
     antialias: true, // 안티앨리어싱 (선택 사항, 결과물이 더 깔끔해짐)
   });
   // const tex = r.generateTexture(c, 1, 1)
   const combinedSprite = new PIXI.Sprite(tex);
+  if (remove) c.destroy({ children: true });
   return combinedSprite;
+};
+
+export const containerToSpriteAdd = (
+  // 컨테이너를 스프라이트로 변환하고 기존 컨테이너를 제거하는 헬퍼 함수
+  c: PIXI.Container,
+  cp: PIXI.Container = c.parent as PIXI.Container
+) => {
+  const s = containerToSprite(c, true);
+  s.zIndex = c.zIndex;
+  cp.addChild(s);
+  cp.removeChild(c);
+  return s;
 };
 
 export const spriteCombine = (
@@ -337,9 +348,7 @@ export const spriteCombine = (
   nc.addChild(sb_c, s);
   s.position.set(s.x + mx, s.y + my);
 
-  const t = containerToSprite(nc).texture; // 컨테이너를 텍스처로 변환
-
-  nc.destroy({ children: true });
+  const t = containerToSprite(nc, true).texture; // 컨테이너를 텍스처로 변환
   return t;
 };
 
@@ -351,9 +360,19 @@ export const textureSize = (bgt: PIXI.Texture, size: number) => {
   s.width = size;
   s.height = size;
   c.addChild(s);
-  const ns = containerToSprite(c);
+  const ns = containerToSprite(c, true);
   // this.main.removeChild(c);
   return ns.texture;
+};
+
+export const tileShadow = (sprite: PIXI.Sprite): PIXI.Sprite => {
+  // 스프라이트에 블러 필터를 적용하여 그림자 효과를 주는 함수
+  sprite.filters = [
+    new PIXI.BlurFilter({
+      strength: 7,
+    }),
+  ];
+  return sprite;
 };
 
 /* =======================

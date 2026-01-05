@@ -3,6 +3,7 @@ import {
   boxButtonDraw,
   boxDraw,
   containerToSprite,
+  containerToSpriteAdd,
   cookieWrite,
   degreesToRadians,
   LEFT,
@@ -10,38 +11,12 @@ import {
   myReturn,
   RIGHT,
   spriteCombine,
-  svgToSprite,
   textureSize,
 } from "./myClasses";
 import { jigsawRestart } from "./jigsaw";
-
-// 개별 퍼즐 조각의 정보를 담는 인터페이스
-export interface pTile {
-  cb: PIXI.Container; // 그림자 효과를 포함한 컨테이너
-  cp: PIXI.Container; // 실제 이미지 조각을 담는 컨테이너
-  nx: number; // 퍼즐판에서의 x 좌표 (인덱스)
-  ny: number; // 퍼즐판에서의 y 좌표 (인덱스)
-  ox: number; // 퍼즐판 위 완성 위치의 x 픽셀 좌표
-  oy: number; // 퍼즐판 위 완성 위치의 y 픽셀 좌표
-  s: PIXI.Sprite; // 최종적으로 화면에 표시될 스프라이트 (이미지 + 그림자)
-  sb: PIXI.Sprite; // 그림자 스프라이트
-  sp: PIXI.Sprite; // 이미지 스프라이트
-  done: boolean; // 완성되었는지 여부
-  zIndex: number; // 화면에 표시될 순서
-}
-
-// 퍼즐 조각의 모양(mask) 정보를 담는 인터페이스
-export interface mTile {
-  x: number; // 퍼즐판에서의 x 좌표 (인덱스)
-  y: number; // 퍼즐판에서의 y 좌표 (인덱스)
-  up: number; // 위쪽 돌기 모양 ID
-  down: number; // 아래쪽 돌기 모양 ID
-  left: number; // 왼쪽 돌기 모양 ID
-  right: number; // 오른쪽 돌기 모양 ID
-  x_p: number; // 퍼즐판 위 완성 위치의 x 픽셀 좌표
-  y_p: number; // 퍼즐판 위 완성 위치의 y 픽셀 좌표
-  done: boolean; // 쿠키 정보에 따라 미리 완성되었는지 여부
-}
+import { makeBackground } from "./makeBackground";
+import { mTile } from "./mTile";
+import { makePTiles, pTile } from "./pTile";
 
 export class JigsawFloor {
   main = new PIXI.Container(); // 전체 게임 요소를 담는 최상위 컨테이너
@@ -89,12 +64,6 @@ export class JigsawFloor {
     console.log("this.tNum :", this.tNum);
     this.bgtOriginal = bgtOriginal;
 
-    // this.bgt =
-    //   bgtOriginal.width > this.fSize
-    //     ? textureSize(bgtOriginal, this.fSize)
-    //     : bgtOriginal; // 원본 이미지가 퍼즐판보다 크면 리사이즈
-    // this.fullPicture = this.bgt;
-
     this.bgt = bgtOriginal;
     this.fullPicture = this.bgt;
     this.bSize = (this.bgt.width / (t_num * 5 + 2)) * 7; // 원본 이미지에서 잘라낼 크기
@@ -130,580 +99,93 @@ export class JigsawFloor {
     this.fullPicture = this.bgt;
     this.bSize = (this.bgt.width / (this.tNum * 5 + 2)) * 7; // 원본 이미지에서 잘라낼 크기
   };
-  makeMaskTilesData = (tNum: number, rNum: number): mTile[][] => {
-    // 퍼즐 조각들의 모양 데이터를 생성하는 함수
-    const tiles: mTile[][] = []; // 타일 배열 초기화
-    // 1. 빈 타일 데이터 구조 생성
-    for (let y = 0; y < tNum; y++) {
-      const xt: mTile[] = [];
-      for (let x = 0; x < tNum; x++) {
-        const mT: mTile = {
-          x: x,
-          y: y,
-          up: 0,
-          down: 0,
-          left: 0,
-          right: 0,
-          x_p: 0,
-          y_p: 0,
-          done: false,
-        };
-        xt.push(mT);
-      }
-      tiles.push(xt);
-    }
-    // 2. 각 타일의 상하좌우 돌기 모양 랜덤하게 지정
-    for (let y = 0; y < tNum; y++) {
-      for (let x = 0; x < tNum; x++) {
-        const u = y == 0 ? 0 : tiles[x][y - 1].down; // 위쪽은 이웃한 타일의 아래쪽 돌기 모양을 이어받음
-        const d =
-          y == tNum - 1 ? 0 : Math.floor(Math.random() * (rNum - 2)) + 1; // 아래쪽은 랜덤 생성 (경계선 제외)
-        const l = x == 0 ? 0 : tiles[x - 1][y].right; // 왼쪽은 이웃한 타일의 오른쪽 돌기 모양을 이어받음
-        const r =
-          x == tNum - 1 ? 0 : Math.floor(Math.random() * (rNum - 2)) + 1; // 오른쪽은 랜덤 생성 (경계선 제외)
-        tiles[x][y] = {
-          x: x,
-          y: y,
-          up: u,
-          down: d,
-          left: l,
-          right: r,
-          x_p: 0,
-          y_p: 0,
-          done: false,
-        };
-      }
-    }
-    // 3. 쿠키에 저장된 완성된 타일 정보 반영
-    this.p.forEach((xy) => {
-      console.log("xy :", xy);
-      console.log("this.tNum :", this.tNum);
-      tiles[xy[0]][xy[1]].done = true;
-    });
-    return tiles;
-  };
-  getMaskTile = async (tile: mTile, sw: number): Promise<PIXI.Sprite> => {
-    // mTile 데이터로부터 SVG 마스크를 생성하는 함수
-    let fill_color, stroke_width, stroke_color, block_color;
-    switch (
-      sw // sw (switch) 값에 따라 스타일(색상, 테두리 두께) 결정
-    ) {
-      case 0: // 퍼즐판의 빈 공간 모양
-        fill_color = "#d9e6f2";
-        stroke_width = 'stroke-width="5"';
-        stroke_color = "#d9e6f2";
-        block_color = "#000000";
-        break;
-      case 1: // 퍼즐 조각 이미지의 마스크
-        fill_color = "#ffffff";
-        stroke_width = 'stroke-width="8"';
-        stroke_color = "#ffffff";
-        block_color = "#000000";
-        break;
-      case 2: // 퍼즐 조각 테두리의 마스크
-        fill_color = "#ffffff";
-        stroke_width = 'stroke-width="1"';
-        stroke_color = "#ffffff";
-        block_color = "#000000";
-        break;
-    }
-    // 방향별(상,하,좌,우) 돌기 모양 SVG path 데이터
-    const mask_data = [
-      // up
-      [
-        `<rect x="0" fill="${block_color}" stroke="${block_color}" stroke-miterlimit="10" width="504" height="144"/>`,
-        `"M432,72.371c0,9.121-72,35.754-108,35.754
-                    s9-90.063-81-90.063c-99.001,0-18,107.969-63,107.969S72,72.596,72,72.596L144,144.5h216L432,72.371z"`,
-        `"M432,71.92c0,0-63-53.795-108-53.795
-                    s36,107.938-63,107.938c-90,0-45-90.031-81-90.031S72,63.023,72,72.145l72,72.355h216L432,71.92z"`,
-        `"M432,72.371c0,9.121-63,44.754-90,35.754
-                    c-34.152-11.384,45-90.063-45-90.063c-225,0-59.806,107.969-126,107.969c-45,0-99-53.436-99-53.436l72,71.904h216L432,72.371z"`,
-        `"M432,71.92c0,0-54-53.795-99-53.795
-                    c-66.194,0,99,107.938-126,107.938c-90,0-10.848-78.646-45-90.031c-27-9-90,26.992-90,36.113l72,72.355h216L432,71.92z"`,
-        `"M432,72.371c-45-18.121-81,8.754-117,35.754
-                    c-28.8,21.6,90-90.063-54-90.063c-117,0-36,107.969-81,107.969S72,72.596,72,72.596l72,71.904h216L432,72.371z"`,
-      ],
-      //down
-      [
-        `<rect y="360" fill="${block_color}" stroke="${block_color}" stroke-miterlimit="10" width="504" height="144"/>`,
-        `"M432,432.371c0,9.121-72,35.754-108,35.754
-                    s9-90.063-81-90.063c-99.001,0-18,107.969-63,107.969S72,432.596,72,432.596L144,360.5h216L432,432.371z"`,
-        `"M432,431.92c0,0-63-53.795-108-53.795
-                    s36,107.938-63,107.938c-90,0-45-90.031-81-90.031S72,423.023,72,432.145l72-71.645h216L432,431.92z"`,
-        `"M432,432.371c0,9.121-63,44.754-90,35.754
-                    c-34.152-11.385,45-90.063-45-90.063c-225,0-59.806,107.969-126,107.969c-45,0-99-53.436-99-53.436l72-72.096h216L432,432.371z"`,
-        `"M432,431.92c0,0-54-53.795-99-53.795
-                    c-66.194,0,99,107.938-126,107.938c-90,0-10.848-78.646-45-90.031c-27-9-90,26.992-90,36.113l72-71.645h216L432,431.92z"`,
-        `"M432,432.371c-45-18.121-81,8.754-117,35.754
-                    c-28.8,21.6,90-90.063-54-90.063c-117,0-36,107.969-81,107.969S72,432.596,72,432.596l72-72.096h216L432,432.371z"`,
-      ],
-      // left
-      [
-        `<rect x="0" fill="${block_color}" stroke="${block_color}" stroke-miterlimit="10" width="144" height="504"/>`,
-        `"M72.08,432c0,0,53.795-63,53.795-108
-                    S17.938,360,17.938,261c0-90,90.031-45,90.031-81S80.977,72,71.856,72l71.644,72v216L72.08,432z"`,
-        `"M71.629,432c-9.121,0-35.754-72-35.754-108
-                    s90.063,9,90.063-81c0-99-107.969-18-107.969-63S71.405,72,71.405,72l72.095,72v216L71.629,432z"`,
-        `"M72.08,432c0,0,53.795-54,53.795-99
-                    c0-66.194-107.938,99-107.938-126c0-90,78.646-10.848,90.031-45c9-27-26.992-90-36.113-90l71.644,72v216L72.08,432z"`,
-        `"M71.629,432c-9.121,0-44.754-63-35.754-90
-                    c11.385-34.152,90.063,45,90.063-45c0-225-107.969-59.806-107.969-126c0-45,53.436-99,53.436-99l72.095,72v216L71.629,432z"`,
-        `"M72.08,432c0,0,53.795-63,53.795-108
-                    S17.938,360,17.938,243c0-144,111.631-25.2,90.031-54c-27-36-54.234-72-36.113-117l71.644,72v216L72.08,432z"`,
-      ],
-      //right
-      [
-        `<rect x="360" fill="${block_color}" stroke="${block_color}" stroke-miterlimit="10" width="144" height="504"/>`,
-        `"M432.08,432c0,0,53.795-63,53.795-108
-                    s-107.938,36-107.938-63c0-90,90.031-45,90.031-81S440.977,72,431.855,72L359.5,144v216L432.08,432z"`,
-        `"M431.629,432c-9.121,0-35.754-72-35.754-108
-                    s90.063,9,90.063-81c0-99-107.969-18-107.969-63s53.436-108,53.436-108L359.5,144v216L431.629,432z"`,
-        `"M432.08,432c0,0,53.795-54,53.795-99
-                    c0-66.194-107.938,99-107.938-126c0-90,78.646-10.848,90.031-45c9-27-26.992-90-36.113-90L359.5,144v216L432.08,432z"`,
-        `"M431.629,432c-9.121,0-44.754-63-35.754-90
-                    c11.385-34.152,90.063,45,90.063-45c0-225-107.969-59.806-107.969-126c0-45,53.436-99,53.436-99L359.5,144v216L431.629,432z"`,
-        `"M432.08,432c0,0,53.795-63,53.795-108
-                    s-107.938,36-107.938-81c0-144,111.631-25.2,90.031-54c-27-36-54.234-72-36.113-117L359.5,144v216L432.08,432z"`,
-      ],
-    ];
-    // tile 데이터의 up, down, left, right 값에 따라 SVG path 조합
-    const direction = [tile.up, tile.down, tile.left, tile.right];
-    const path_f = `<path fill="${fill_color}" stroke="#000000" ${stroke_width} stroke-miterlimit="10" d=`;
-    const path_e = `/>`;
-    let svgContent_front = "";
-    let svgContent_end = "";
-    for (let i = 0; i < direction.length; i++) {
-      if (direction[i] != 0) {
-        // 돌기가 있는 경우
-        svgContent_front += path_f + mask_data[i][direction[i]] + path_e;
-      } else {
-        // 돌기가 없는 경우 (직선)
-        svgContent_end += mask_data[i][direction[i]];
-      }
-    }
-    // 최종 SVG 문자열 생성
-    const svg = `<svg version="1.1" id="레이어_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px"
-                y="0px" width="504px" height="504px" viewBox="0 0 504 504" enable-background="new 0 0 504 504" xml:space="preserve">       
-                ${svgContent_front} <polygon fill="${fill_color}" stroke="${stroke_color}" stroke-miterlimit="10" points="71.25,72.5 134.5,144 134.5,360 72,432.25 144,369.5 
-                360,369.5 431.75,432 368.5,360 368.5,144 432,72.25 360,135.5 144,135.5 "/>  ${svgContent_end} </svg>`;
-    // SVG를 PIXI 스프라이트로 변환
-    const s = await svgToSprite(svg, this.tSize);
-
-    tile.x_p = this.tSize / 2 + ((this.tSize * 5) / 7) * tile.x; // 타일의 최종 위치 계산
-    tile.y_p = this.tSize / 2 + ((this.tSize * 5) / 7) * tile.y;
-    if (sw == 0) {
-      // 퍼즐판의 빈 공간을 그릴 경우
-      s.position.set(tile.x_p, tile.y_p);
-      this.bg1.addChild(s);
-    }
-    return s;
-  };
   borderPrepare = () => {
     // 퍼즐판(border)과 배경(background)을 상호작용 가능한 스프라이트로 준비하는 함수
-    this.backgroundSprite = this.containerToSpriteAdd(this.bg1, this.bg0);
-    this.borderSprite = this.containerToSpriteAdd(this.border);
+    this.backgroundSprite = containerToSpriteAdd(this.bg1, this.bg0);
+    this.borderSprite = containerToSpriteAdd(this.border);
     this.borderSprite.interactive = true;
     this.borderSprite.eventMode = "static";
     this.borderSprite.cursor = "pointer";
     this.borderSprite.on("pointerdown", this.bgPrepare); // 클릭 시 원본 이미지 보기
   };
-  getTile = async (t: mTile, pTiles: pTile[] = this.pTiles) => {
-    // 하나의 퍼즐 조각 스프라이트를 생성하는 함수
-    const c = new PIXI.Container();
-    // 맞춰진 그림을 보여줌.
-    this.bg2.addChild(c);
-    // 원본 이미지에서 잘라낼 위치 계산
-    const t_x = this.bSize / 2 + ((this.bSize * 5) / 7) * t.x;
-    const t_y = this.bSize / 2 + ((this.bSize * 5) / 7) * t.y;
-    const m = await this.getMaskTile(t, 1); // 조각 모양 마스크 생성
+  // getTile = async (t: mTile, pTiles: pTile[] = this.pTiles) => {
+  //   // 하나의 퍼즐 조각 스프라이트를 생성하는 함수
+  //   const c = new PIXI.Container();
+  //   // 맞춰진 그림을 보여줌.
+  //   this.bg2.addChild(c);
+  //   // 원본 이미지에서 잘라낼 위치 계산
+  //   const t_x = this.bSize / 2 + ((this.bSize * 5) / 7) * t.x;
+  //   const t_y = this.bSize / 2 + ((this.bSize * 5) / 7) * t.y;
+  //   const m = await getMaskTile(t, 1, this.tSize); // 조각 모양 마스크 생성
 
-    // console.log('this.bSize :', this.bSize);
-    // console.log('this.fSize :', this.fSize);
-    let x = t_x - this.bSize / 2;
-    let y = t_y - this.bSize / 2;
-    // 이미지 경계를 벗어나지 않도록 조정
-    if (x + this.bSize > this.bgt.width) {
-      x = this.bgt.width - this.bSize;
-    }
-    if (y + this.bSize > this.bgt.width) {
-      y = this.bgt.width - this.bSize;
-    }
-    const r = new PIXI.Rectangle(x, y, this.bSize, this.bSize);
-    // const b = this.bgt.clone();
+  //   // console.log('this.bSize :', this.bSize);
+  //   // console.log('this.fSize :', this.fSize);
+  //   let x = t_x - this.bSize / 2;
+  //   let y = t_y - this.bSize / 2;
+  //   // 이미지 경계를 벗어나지 않도록 조정
+  //   if (x + this.bSize > this.bgt.width) {
+  //     x = this.bgt.width - this.bSize;
+  //   }
+  //   if (y + this.bSize > this.bgt.width) {
+  //     y = this.bgt.width - this.bSize;
+  //   }
+  //   const r = new PIXI.Rectangle(x, y, this.bSize, this.bSize);
+  //   // const b = this.bgt.clone();
 
-    const b = new PIXI.Texture({
-      // 텍스처에서 해당 부분만 잘라내기
-      source: this.bgt.source,
-      frame: r,
-    });
+  //   const b = new PIXI.Texture({
+  //     // 텍스처에서 해당 부분만 잘라내기
+  //     source: this.bgt.source,
+  //     frame: r,
+  //   });
 
-    const s = new PIXI.Sprite(b); // 스프라이트 생성 및 마스크 적용
-    s.width = this.tSize;
-    s.height = this.tSize;
-    m.anchor.set(0, 0);
-    s.mask = m;
-    // 조각 테두리 생성
-    const rectangle = boxDraw(0x000000, 0, 0, this.tSize, this.tSize);
-    const mmm = await this.getMaskTile(t, 2);
-    rectangle.mask = mmm;
-    mmm.anchor.set(0, 0);
-    // 그림자(cb)와 이미지(cp) 컨테이너 분리
-    const cb = new PIXI.Container();
-    c.addChild(cb);
-    cb.addChild(mmm, rectangle);
-    const cp = new PIXI.Container();
-    c.addChild(cp);
-    cp.addChild(m, s);
-    c.pivot.set(this.tSize / 2, this.tSize / 2);
-    c.position.set(t.x_p, t.y_p);
-    // pTile 객체 생성 및 배열에 추가
-    const p: pTile = {
-      cb: cb,
-      cp: cp,
-      nx: t.x,
-      ny: t.y,
-      ox: t.x_p,
-      oy: t.y_p,
-      s: s,
-      sb: s,
-      sp: s,
-      done: t.done,
-      zIndex: 0,
-    };
-    pTiles.push(p);
-  };
-  makeBackground = async (bgt: PIXI.Texture) => {
-    // 퍼즐판 배경 및 테두리를 생성하는 함수
-    this.bg2.addChild(this.border);
-    const bgd = new PIXI.Sprite();
-    bgd.texture = bgt; // 원본 이미지로 배경 스프라이트 생성
-    bgd.anchor.set(0.5, 0.5);
-    bgd.width = this.fSize;
-    bgd.height = this.fSize;
-    bgd.position.set(this.fSize / 2, this.fSize / 2);
-    const margin = (this.tSize * 2) / 7;
-    // SVG를 사용하여 퍼즐판 모양의 마스크 생성
-    const svgContent = `<rect x="0" y="0" fill="#ffffff" stroke="#000000" stroke-miterlimit="10" 
-                width="${this.fSize}" height="${this.fSize}"/>
-                <rect x="${margin}" y="${margin}" fill="#000000" stroke="#000000" stroke-miterlimit="10" 
-                width="${this.fSize - margin * 2}" height="${
-      this.fSize - margin * 2
-    }"/>`;
-    const svg = `<svg version="1.1" id="레이어_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px"
-                y="0px" width="${this.fSize}px" height="${this.fSize}px" viewBox="0 0 ${this.fSize} ${this.fSize}" 
-                enable-background="new 0 0 ${this.fSize} ${this.fSize}" 
-                xml:space="preserve">${svgContent}</svg>`;
-    const s = await svgToSprite(svg, this.fSize);
-    s.position.set(this.fSize / 2, this.fSize / 2);
-    bgd.mask = s;
-    this.border.addChild(s, bgd);
-
-    this.mTileData = this.makeMaskTilesData(this.tNum, 6); // 퍼즐 조각 모양 데이터 생성
-    this.mTileData.forEach((data) =>
-      data.forEach((tileData) => this.getMaskTile(tileData, 0))
-    ); // 빈자리 그리기
-    this.border.zIndex = 3;
-    // 퍼즐판 그림자 생성
-    const c2 = new PIXI.Container();
-    const b_v1 = boxDraw(
-      0x000000,
-      0,
-      0,
-      (this.tSize * 2) / 7 - this.shadowMargin,
-      this.fSize - this.shadowMargin
-    );
-    const b_v2 = boxDraw(
-      0x000000,
-      this.fSize - (this.tSize * 2) / 7 + this.shadowMargin,
-      this.shadowMargin,
-      (this.tSize * 2) / 7 - this.shadowMargin,
-      this.fSize - this.shadowMargin * 2
-    );
-    const b_h1 = boxDraw(
-      0x000000,
-      0,
-      0,
-      this.fSize - this.shadowMargin,
-      (this.tSize * 2) / 7 - this.shadowMargin
-    );
-    const b_h2 = boxDraw(
-      0x000000,
-      0,
-      this.fSize - (this.tSize * 2) / 7 + this.shadowMargin,
-      this.fSize - this.shadowMargin,
-      (this.tSize * 2) / 7 - this.shadowMargin
-    );
-    c2.addChild(b_v1, b_v2, b_h1, b_h2);
-    this.bg2.addChild(c2);
-    c2.zIndex = 0;
-    let b_s = containerToSprite(c2, this.renderer);
-    b_s = this.tileShadow(b_s);
-    // download_sprite_as_png(this.renderer, b_s, String(this.tNum) + "b.png")
-    b_s.position.set(this.shadowMargin, this.shadowMargin);
-    b_s.zIndex = 0;
-    // 로딩 텍스트 생성
-    const fontsize = this.mobileNow ? this.fSize / 80 : this.fSize / 40;
-    const loading = this.textPrepare("Loading", 0x000000, fontsize, 0, 0, true);
-    loading.position.set(this.fSize / 2, this.fSize / 2);
-    loading.zIndex = -1;
-    this.bg0.addChild(loading);
-    this.bg2.addChild(b_s);
-    this.bg2.removeChild(c2);
-  };
+  //   const s = new PIXI.Sprite(b); // 스프라이트 생성 및 마스크 적용
+  //   s.width = this.tSize;
+  //   s.height = this.tSize;
+  //   m.anchor.set(0, 0);
+  //   s.mask = m;
+  //   // 조각 테두리 생성
+  //   const rectangle = boxDraw(0x000000, 0, 0, this.tSize, this.tSize);
+  //   const mmm = await getMaskTile(t, 2, this.tSize);
+  //   rectangle.mask = mmm;
+  //   mmm.anchor.set(0, 0);
+  //   // 그림자(cb)와 이미지(cp) 컨테이너 분리
+  //   const cb = new PIXI.Container();
+  //   c.addChild(cb);
+  //   cb.addChild(mmm, rectangle);
+  //   const cp = new PIXI.Container();
+  //   c.addChild(cp);
+  //   cp.addChild(m, s);
+  //   c.pivot.set(this.tSize / 2, this.tSize / 2);
+  //   c.position.set(t.x_p, t.y_p);
+  //   // pTile 객체 생성 및 배열에 추가
+  //   const p: pTile = {
+  //     cb: cb,
+  //     cp: cp,
+  //     nx: t.x,
+  //     ny: t.y,
+  //     ox: t.x_p,
+  //     oy: t.y_p,
+  //     s: s,
+  //     sb: s,
+  //     sp: s,
+  //     done: t.done,
+  //     zIndex: 0,
+  //   };
+  //   pTiles.push(p);
+  // };
 
   start = async () => {
     // 게임 시작을 위한 전체 프로세스
-    this.displayTextureResize();
+
     console.log("start : ");
-    await this.makeBackground(this.bgt); // 1. 배경 생성
-    this.mTileData.forEach(async (mTile) => {
-      // 2. 모든 조각 생성 (아직 화면에 흩뿌리지는 않음)
-      mTile.forEach(async (pTile) => await this.getTile(pTile));
-    });
-    setTimeout(() => {
-      // 3. 약간의 딜레이 후, 조각들을 스프라이트화하고 흩뿌림
-      this.pTiles.forEach((p) => this.makeSprite(p));
-      // bgPrepare()
-      this.borderPrepare(); // 4. 퍼즐판 상호작용 준비
-      // setTimeout(() => {
-      //     download_sprite_as_png(f.renderer, this.backgroundSprite, String(this.tNum) + "c.png")
-      //     download_sprite_as_png(f.renderer, this.borderSprite, String(this.tNum) + "a.png")
-      // }, 4000)
-      this.selectStart(this.r); // 5. 이미지 선택 화면 시작
-    }, 4000);
-  };
-  makeSprite = (p: pTile) => {
-    // pTile 객체를 실제 움직일 수 있는 스프라이트로 만드는 함수
-    const xyCookieWrite = (x: number, y: number) => {
-      // 완성된 조각의 위치를 쿠키에 저장하는 함수
-      const xy = String(x) + "#" + String(y);
-      this.cookie += this.cookie == "" ? xy : "$" + xy;
-      cookieWrite({ jigsawPosition: this.cookie });
-    };
-    const tileFix = (p: pTile) => {
-      // 조각이 제자리에 놓였을 때 처리하는 함수
-      const tileFixAction = (p: pTile) => {
-        // 조각이 맞춰지는 애니메이션
-        const oSize = p.sp.width;
-        const maxSize = (p.sp.width * 12) / 10;
-        let sVector = this.mobileNow
-          ? (maxSize - oSize) / 15
-          : (maxSize - oSize) / 30;
-        let rVector = this.mobileNow ? 360 / (15 * 2) : 360 / (30 * 2);
-        p.s.parent?.addChild(p.sb, p.sp);
-        p.s.parent?.removeChild(p.s);
-        p.sb.anchor.set(0.5, 0.5);
-        p.sp.anchor.set(0.5, 0.5);
-        p.sp.position.set(p.ox, p.oy);
-        p.sb.position.set(p.ox + this.shadowMargin, p.oy + this.shadowMargin);
-        p.sp.zIndex = 100001;
-        p.sb.zIndex = 100000;
-        const sizeAction = () => {
-          p.sb.angle += rVector;
-          p.sb.width += sVector;
-          p.sb.height += sVector;
-          p.sp.angle += rVector;
-          p.sp.width += sVector;
-          p.sp.height += sVector;
-          // console.log('sVector :', sVector);
-          if (p.sp.width > maxSize) {
-            sVector = -sVector;
-            if (Math.abs(360 - p.sp.angle) < rVector) {
-              rVector = 0;
-            }
-          }
-          if (p.sp.width < oSize) {
-            // 애니메이션 종료 후
-            p.sb.angle = 0;
-            p.sp.angle = 0;
-            p.sb.position.set(
-              p.ox + this.shadowMargin,
-              p.oy + this.shadowMargin
-            );
-            p.sp.position.set(p.ox, p.oy);
-            combineAfterAction(); // 스프라이트 합치기 실행
-          } else {
-            requestAnimationFrame(sizeAction);
-          }
-        };
-        sizeAction();
-      };
-      const combineAfterAction = () => {
-        // 조각을 퍼즐판/배경 스프라이트에 합치는 작업
-        this.borderSprite.texture = spriteCombine(this.borderSprite, p.sp);
-        this.backgroundSprite.texture = spriteCombine(
-          this.backgroundSprite,
-          p.sb,
-          this.shadowMargin,
-          this.shadowMargin
-        );
-        p.done = true;
-        this.endingCheck(); // 게임 종료 여부 확인
-      };
-
-      tileFixAction(p);
-    };
-    const moveByMouse = (p: pTile) => {
-      // (데스크탑) 마우스로 조각을 움직이는 로직
-      const c = p.s;
-      const parentWidth = this.fSize;
-      const parentHeight = this.fSize_h;
-      c.interactive = true;
-      c.eventMode = "static";
-      c.cursor = "pointer";
-      let pickUp = false;
-      const onDragStart = () => {
-        if (!pickUp) {
-          pickUp = true;
-          this.zIndex++;
-          c.zIndex = this.zIndex;
-          c.on("pointermove", onDragMove);
-        } else {
-          pickUp = false;
-          c.off("pointermove", onDragMove);
-          onDragEnd();
-        }
-      };
-      const onDragEnd = () => {
-        if (
-          Math.abs(c.x - p.ox) < this.tSize / 5 &&
-          Math.abs(c.y - p.oy) < this.tSize / 5
-        ) {
-          tileFix(p);
-          xyCookieWrite(p.nx, p.ny);
-        }
-      };
-      const onDragMove = (event: any) => {
-        if (pickUp) {
-          const newPosition = event.data.getLocalPosition(c.parent);
-          c.x =
-            newPosition.x <= parentWidth && newPosition.x >= 0
-              ? newPosition.x
-              : c.x;
-          c.y =
-            newPosition.y <= parentHeight && newPosition.y >= 0
-              ? newPosition.y
-              : c.y;
-        }
-      };
-      c.on("pointerdown", onDragStart);
-    };
-    const m_moveByMouse = (p: pTile) => {
-      // (모바일) 터치로 조각을 움직이는 로직
-      p.s.interactive = true;
-      p.s.eventMode = "static";
-      p.s.cursor = "pointer";
-      let pickUp = false;
-      const onDragStart = () => {
-        console.log("onDragStart");
-        pickUp = true;
-        this.zIndex++;
-        p.s.zIndex = this.zIndex;
-        p.s.on("touchmove", onDragMove);
-      };
-      const onDragEnd = () => {
-        console.log("onDragEnd");
-
-        if (
-          Math.abs(p.s.x - p.ox) < this.tSize / 5 &&
-          Math.abs(p.s.y - p.oy) < this.tSize / 5
-        ) {
-          tileFix(p);
-          xyCookieWrite(p.nx, p.ny);
-        } else {
-          p.s.off("touchmove", onDragMove);
-          pickUp = false;
-        }
-      };
-      const onDragMove = (event: any) => {
-        console.log("onDragMove");
-        if (pickUp) {
-          const newPosition = event.data.getLocalPosition(p.s.parent);
-          p.s.x =
-            newPosition.x <= this.fSize && newPosition.x >= 0
-              ? newPosition.x
-              : p.s.x;
-          p.s.y =
-            newPosition.y <= this.fSize_h && newPosition.y >= 0
-              ? newPosition.y
-              : p.s.y;
-        }
-      };
-      p.s.on("touchstart", onDragStart).on("touchend", onDragEnd);
-    };
-    p.sb = containerToSprite(p.cb, this.renderer); // 1. 이미지와 테두리(그림자용) 컨테이너를 각각 스프라이트로 변환
-    p.sp = containerToSprite(p.cp, this.renderer);
-    const tS = this.tileShadow(p.sb); // 2. 그림자 스프라이트에 그림자 효과(블러) 적용
-    tS.position.set(this.shadowMargin, this.shadowMargin);
-    const c = new PIXI.Container(); // 3. 그림자와 이미지를 하나의 컨테이너에 합친 후, 다시 하나의 스프라이트로 변환
-    this.bg2.addChild(c);
-    c.addChild(tS, p.sb, p.sp);
-    p.sb = tS;
-    p.s = containerToSprite(c, this.renderer); // 최종 조각 스프라이트
-    p.s.anchor.set(0.5, 0.5);
-    p.s.position.set(p.ox, p.oy);
-    p.s.zIndex = 10 + Math.floor(Math.random() * 10);
-    c.parent?.removeChild(c);
-    p.cb.parent?.removeChild(p.cb, p.cp);
-    p.zIndex = p.nx + p.ny * this.tNum;
-    this.bg2.addChild(p.s);
-    if (!p.done) {
-      // 아직 맞춰지지 않은 조각
-      if (this.mobileNow) {
-        // 4. 움직임 이벤트 추가 및 흩뿌리기
-        m_moveByMouse(p);
-      } else {
-        moveByMouse(p);
-      }
-      this.tileScatter(p, true);
-    } else {
-      // 이미 맞춰진 조각 (쿠키에서 로드)
-      // border와 바탕화면에 그리기
-      this.bg2.removeChild(p.s);
-      this.border.addChild(p.sp);
-      this.bg1.addChild(p.sb);
-      p.sp.anchor.set(0.5, 0.5);
-      p.sp.position.set(p.ox, p.oy);
-      p.sb.anchor.set(0.5, 0.5);
-      p.sb.position.set(p.ox + this.shadowMargin, p.oy + this.shadowMargin);
-    }
-  };
-  // tileShadow = (s: PIXI.Sprite) => {
-  //   let mt = s;
-  //   const blurFilter = new PIXI.BlurFilter();
-  //   mt.filters = [blurFilter];
-  //   blurFilter.blur = 7;
-  //   return mt;
-  // };
-  tileShadow = (sprite: PIXI.Sprite): PIXI.Sprite => {
-    // 스프라이트에 블러 필터를 적용하여 그림자 효과를 주는 함수
-    sprite.filters = [
-      new PIXI.BlurFilter({
-        strength: 7,
-      }),
-    ];
-    return sprite;
-  };
-  // SpriteAddShadow = (s: PIXI.Sprite) => {
-  //     let sd = this.tileShadow(s)
-  //     let c = new PIXI.Container()
-  //     c.addChild(sd, s)
-  //     s.parent.addChild(c)
-  //     sd.position.set(this.shadowMargin, this.shadowMargin)
-  //     return this.containerToSpriteAdd(c)
-  // }
-  containerToSpriteAdd = (
-    // 컨테이너를 스프라이트로 변환하고 기존 컨테이너를 제거하는 헬퍼 함수
-    c: PIXI.Container,
-    cp: PIXI.Container = c.parent as PIXI.Container
-  ) => {
-    const s = containerToSprite(c, this.renderer);
-    s.zIndex = c.zIndex;
-    cp.addChild(s);
-    cp.removeChild(c);
-    c.destroy({ children: true });
-    // c.destroy({ children: true });
-    return s;
+    // 1. 배경 생성
+    this.mTileData = await makeBackground();
+    // 2. 모든 조각 생성 (아직 화면에 흩뿌리지는 않음)
+    await makePTiles(this.mTileData);
+    // 3. 약간의 딜레이 후, 조각들을 스프라이트화하고 흩뿌림
+    this.mTileData = [];
+    this.borderPrepare(); // 4. 퍼즐판 상호작용 준비
+    this.selectStart(this.r); // 5. 이미지 선택 화면 시작
   };
 
   endingCheck = () => {
@@ -916,21 +398,7 @@ export class JigsawFloor {
       s.y = r.y + m;
       s.zIndex = r.size - m;
     };
-    const _makeSelectSprite = (
-      // 캐러셀에 표시될 이미지 스프라이트를 생성하는 내부 함수 (사용되지 않음)
-      degree: number,
-      t: PIXI.Texture,
-      c: PIXI.Container,
-      floorSize: number = 100
-    ) => {
-      const r = getPositionAndSize(degree, floorSize);
-      const s = new PIXI.Sprite(t);
-      s.anchor.set(0.5, 0.5);
-      setPositions(s, r);
-      s.zIndex = r.size;
-      c.addChild(s);
-      return s;
-    };
+
     const makeSelectSprite = (
       // 캐러셀에 표시될 이미지 스프라이트를 생성하는 함수 (그림자 포함)
       degree: number,
@@ -947,7 +415,7 @@ export class JigsawFloor {
       // c.addChild(td);
       // b.alpha = 0.5;
       // b.filters = [myFilter];
-      const sb = containerToSprite(td, this.renderer);
+      const sb = containerToSprite(td);
       // c.removeChild(td);
       const tf = new PIXI.Container();
       sb.alpha = 0.5;
@@ -956,7 +424,7 @@ export class JigsawFloor {
       tf.addChild(sb, s);
       const r = getPositionAndSize(degree, floorSize);
       // console.log('b.x, b.y :', b.x, b.y);
-      const ns = containerToSprite(tf, this.renderer);
+      const ns = containerToSprite(tf);
       // const ns = sb
       ns.anchor.set(0.5, 0.5);
       setPositions(ns, r);
@@ -1212,8 +680,8 @@ export class JigsawFloor {
 
         maskContainer.addChild(JigSaw, prev, next);
         shadowContainer.addChild(JigSawB, prevB, nextB);
-        const mask = containerToSprite(maskContainer, this.renderer);
-        const shadow = containerToSprite(shadowContainer, this.renderer);
+        const mask = containerToSprite(maskContainer);
+        const shadow = containerToSprite(shadowContainer);
         shadow.filters = [myf];
         textBackground.mask = mask;
         shadow.position.set(fSize / 80, fSize / 80);

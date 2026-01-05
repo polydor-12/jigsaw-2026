@@ -2,6 +2,7 @@ import * as PIXI from "pixi.js";
 import { cookieRead, cookieWrite, makeFloor, myReturn } from "./myClasses";
 import { initFirebase } from "./firebase";
 import { JigsawFloor } from "./jigsawFloor";
+import { makeMaskTilesData } from "./mTile";
 
 // 직소 퍼즐 게임의 메인 클래스
 
@@ -93,6 +94,7 @@ async function main() {
   const r = await makeFloor(); // 기본 PIXI 환경 설정 (myClasses.ts)
   const f = await jigsawFirstStart(r); // 직소 퍼즐 시작
   myJigsawFloor.push(f);
+  f.displayTextureResize();
   console.log("f 만듬");
   f.start();
 
