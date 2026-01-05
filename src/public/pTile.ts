@@ -12,8 +12,6 @@ import {
 
 // 개별 퍼즐 조각의 정보를 담는 인터페이스
 export interface pTile {
-  // cb: PIXI.Container; // 그림자 효과를 포함한 컨테이너
-  // cp: PIXI.Container; // 실제 이미지 조각을 담는 컨테이너
   nx: number; // 퍼즐판에서의 x 좌표 (인덱스)
   ny: number; // 퍼즐판에서의 y 좌표 (인덱스)
   ox: number; // 퍼즐판 위 완성 위치의 x 픽셀 좌표
@@ -28,10 +26,6 @@ export interface pTile {
 export const makePTiles = async (mTileData: mTile[][]) => {
   console.log("makePTiles 시작");
   const f = myJigsawFloor[0];
-  // mTileData.forEach(async (mTile) => {
-  //   // 2. 모든 조각 생성 (아직 화면에 흩뿌리지는 않음)
-  //   mTile.forEach((pTile) => getTile(pTile));
-  // });
 
   const allPromises1 = mTileData.flatMap((data) =>
     data.map(async (mTile) => {
@@ -42,7 +36,6 @@ export const makePTiles = async (mTileData: mTile[][]) => {
 
   const allPromises2 = f.pTiles.flatMap(async (pTile, index) => {
     await makeSpriteMove(pTile);
-    // f.bg2.removeChild(pTileContainers[index]);
   });
   await Promise.all(allPromises2);
   // pTileContainers.forEach((pTileContainer) => {
