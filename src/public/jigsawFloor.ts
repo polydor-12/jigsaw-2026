@@ -6,12 +6,10 @@ import {
   containerToSpriteAdd,
   cookieWrite,
   degreesToRadians,
-  delay,
   LEFT,
   mobileNow,
   myReturn,
   RIGHT,
-  spriteCombine,
   textureSize,
 } from "./myClasses";
 import { jigsawRestart } from "./jigsaw";
@@ -182,7 +180,7 @@ export class JigsawFloor {
     // 1. 배경 생성
     this.mTileData = await makeBackground();
     // 2. 모든 조각 생성 (아직 화면에 흩뿌리지는 않음)
-    await delay(500);
+
     await makePTiles(this.mTileData);
     // 3. 약간의 딜레이 후, 조각들을 스프라이트화하고 흩뿌림
     this.mTileData = [];
