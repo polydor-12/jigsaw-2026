@@ -1,5 +1,6 @@
 import * as PIXI from "pixi.js";
 import { myJigsawFloor } from "./jigsaw";
+import { positionData } from "./select";
 
 /* =======================
    Key Codes
@@ -378,3 +379,38 @@ export const tileShadow = (sprite: PIXI.Sprite): PIXI.Sprite => {
 export function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+export const textPrepare = (
+  // 텍스트 객체를 생성하는 유틸리티 함수
+  text: string,
+  color: number,
+  font_size: number,
+  x: number,
+  y: number,
+  b: boolean = true,
+  font: string = "Times New Roman"
+): PIXI.Text => {
+  const f = myJigsawFloor[0];
+  const b_style: Partial<PIXI.TextStyleOptions> = {
+    fontFamily: font,
+    fontWeight: "bold", // 혹은 '700'
+    stroke: {
+      width: font_size / 50,
+      color: "#000000", // v8은 stroke 설정 시 색상을 명시하는 것이 좋습니다.
+      join: "round", // 텍스트 외곽선을 부드럽게 처리 (추천 옵션)
+    },
+  };
+  // const ty = new PIXI.TextStyle(b_style);
+  // const t = new PIXI.Text(text, ty);
+  const t = new PIXI.Text({
+    text,
+    style: b_style,
+  });
+
+  t.style.fill = color;
+  t.style.stroke = color;
+  if (b) t.anchor.set(0.5, 0.5);
+  t.position.set((f.fSize * x) / 100, (f.fSize_h * y) / 100);
+  t.style.fontSize = (f.fSize * font_size) / 100;
+  return t;
+};

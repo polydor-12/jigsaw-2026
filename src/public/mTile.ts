@@ -1,5 +1,5 @@
 import * as PIXI from "pixi.js";
-import { svgToSprite, svgToTexture } from "./myClasses";
+import { svgToTexture } from "./myClasses";
 
 // 퍼즐 조각의 모양(mask) 정보를 담는 인터페이스
 export interface mTile {

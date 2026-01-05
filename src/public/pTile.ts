@@ -326,7 +326,7 @@ export const makeSpriteMove = (p: pTile) => {
     } else {
       moveByMouse(p);
     }
-    f.tileScatter(p, true);
+    tileScatter(p, true);
   } else {
     // 이미 맞춰진 조각 (쿠키에서 로드)
     // border와 바탕화면에 그리기
@@ -338,4 +338,37 @@ export const makeSpriteMove = (p: pTile) => {
     p.sb.anchor.set(0.5, 0.5);
     p.sb.position.set(p.ox + f.shadowMargin, p.oy + f.shadowMargin);
   }
+};
+
+export const tileScatter = (p: pTile, s: boolean = false) => {
+  // 조각을 특정 위치로 움직이는 애니메이션 (흩뿌리기)
+  const f = myJigsawFloor[0];
+  let x: number, y: number;
+  if (s) {
+    // 랜덤 위치로 흩뿌리기
+    x = Math.floor(Math.random() * f.fSize);
+    y = Math.floor(Math.random() * (f.fSize_h - f.fSize) + f.fSize);
+  } else {
+    // 원래 위치로
+    x = p.ox;
+    y = p.ox;
+  }
+  const v = f.mobileNow ? 25 : 60;
+  const xVector = (p.s.x - x) / v;
+  const yVector = (p.s.y - y) / v;
+  const tMove = () => {
+    // 부드럽게 이동하는 애니메이션 로직
+    if (
+      Math.abs(p.s.x - x) > Math.abs(xVector) &&
+      Math.abs(p.s.y - y) > Math.abs(xVector)
+    ) {
+      p.s.x -= xVector;
+      p.s.y -= yVector;
+      requestAnimationFrame(tMove);
+    } else {
+      p.s.x = x;
+      p.s.y = y;
+    }
+  };
+  tMove();
 };

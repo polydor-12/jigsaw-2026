@@ -4,6 +4,7 @@ import {
   boxDraw,
   containerToSprite,
   svgToSprite,
+  textPrepare,
   textureToSprite,
   tileShadow,
 } from "./myClasses";
@@ -78,7 +79,7 @@ export const makeBackground = async (): Promise<mTile[][]> => {
   b_s.zIndex = 0;
   // 로딩 텍스트 생성
   const fontsize = f.mobileNow ? f.fSize / 80 : f.fSize / 40;
-  const loading = f.textPrepare("Loading", 0x000000, fontsize, 0, 0, true);
+  const loading = textPrepare("Loading", 0x000000, fontsize, 0, 0, true);
   loading.position.set(f.fSize / 2, f.fSize / 2);
   loading.zIndex = -1;
   f.bg0.addChild(loading);
