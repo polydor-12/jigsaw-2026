@@ -34,7 +34,7 @@ export const makePTiles = async (mTileData: mTile[][]) => {
     })
   );
   await Promise.all(allPromises1);
-  await delay(500);
+  await delay(1000);
   const allPromises2 = f.pTiles.flatMap(async (pTile, index) => {
     await makeSpriteMove(pTile);
   });
