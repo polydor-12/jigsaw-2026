@@ -1,4 +1,5 @@
 import * as PIXI from "pixi.js";
+import { myJigsawFloor } from "./jigsaw";
 
 /* =======================
    Key Codes
@@ -13,7 +14,7 @@ export const ENTER = 13;
    Interfaces
 ======================= */
 export interface myReturn {
-  renderer: PIXI.Renderer;
+  app: PIXI.Application;
   mc: PIXI.Container;
   fSize: number;
   fSize_h: number;
@@ -72,7 +73,7 @@ export const makeFloor = async () => {
 
   app.canvas.style.position = "absolute";
   app.canvas.style.display = "block";
-  document.body.appendChild(app.canvas);
+  // document.body.appendChild(app.canvas);
 
   let fSize = 0;
   if (window.innerWidth + window.innerWidth / 4 < window.innerHeight) {
@@ -90,7 +91,7 @@ export const makeFloor = async () => {
   app.stage.addChild(mc);
 
   return {
-    renderer: app.renderer,
+    app,
     mc,
     fSize,
     fSize_h,
@@ -235,13 +236,15 @@ export const boxButtonDraw = (
   color: number,
   x: number,
   y: number,
-  w: number,
-  h: number = w
+  width: number,
+  height: number = width,
+  alpha: number = 1
 ) => {
-  const b = boxDraw(color, x, y, w, h);
+  const b = boxDraw(color, x, y, width, height);
   b.interactive = true;
   b.cursor = "pointer";
   b.on("pointerdown", () => f());
+  b.alpha = alpha;
   return b;
 };
 
@@ -302,6 +305,55 @@ export const cookieRead = () => {
     data[k] = v;
   });
   return data;
+};
+
+export const containerToSprite = (
+  c: PIXI.Container,
+  renderer = myJigsawFloor[0]?.r.app.renderer
+) => {
+  // PIXI.Container를 PIXI.Sprite로 변환하는 함수 (렌더 텍스처 사용)
+  const tex = renderer.generateTexture({
+    target: c, // 렌더링할 대상 (Container, Sprite 등)
+    resolution: 1, // 해상도 (기존 인자의 1에 해당)
+    antialias: true, // 안티앨리어싱 (선택 사항, 결과물이 더 깔끔해짐)
+  });
+  // const tex = r.generateTexture(c, 1, 1)
+  const combinedSprite = new PIXI.Sprite(tex);
+  return combinedSprite;
+};
+
+export const spriteCombine = (
+  // 두 스프라이트를 하나의 텍스처로 합치는 함수 (성능 최적화)
+  sb: PIXI.Sprite,
+  s: PIXI.Sprite,
+  mx: number = 0,
+  my: number = 0
+) => {
+  const nc = new PIXI.Container();
+  const sb_c = new PIXI.Sprite();
+
+  sb_c.texture = sb.texture;
+
+  nc.addChild(sb_c, s);
+  s.position.set(s.x + mx, s.y + my);
+
+  const t = containerToSprite(nc).texture; // 컨테이너를 텍스처로 변환
+
+  nc.destroy({ children: true });
+  return t;
+};
+
+export const textureSize = (bgt: PIXI.Texture, size: number) => {
+  // 텍스처를 원하는 크기로 리사이즈하는 함수
+  const c = new PIXI.Container();
+  // this.main.addChild(c);
+  const s = new PIXI.Sprite(bgt);
+  s.width = size;
+  s.height = size;
+  c.addChild(s);
+  const ns = containerToSprite(c);
+  // this.main.removeChild(c);
+  return ns.texture;
 };
 
 /* =======================
