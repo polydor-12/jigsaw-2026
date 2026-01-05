@@ -263,10 +263,6 @@ export class JigsawFloor {
     fullPicture.addChild(fullP);
     fullP.texture = this.fullPicture;
 
-    // fullP.texture = new PIXI.Texture({
-    //   source: this.fullPicture.source,
-    // });
-
     fullPicture.zIndex = 1000000;
     fullP.interactive = true;
     fullP.eventMode = "static";

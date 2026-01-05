@@ -39,9 +39,6 @@ export const makePTiles = async (mTileData: mTile[][]) => {
     await makeSpriteMove(pTile);
   });
   await Promise.all(allPromises2);
-  // pTileContainers.forEach((pTileContainer) => {
-  //   pTileContainer.destroy({ children: true });
-  // });
 };
 
 export const getTile = async (t: mTile) => {
