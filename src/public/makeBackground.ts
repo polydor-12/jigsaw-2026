@@ -7,7 +7,7 @@ import {
   textPrepare,
   textureToSprite,
   tileShadow,
-} from "./myClasses";
+} from "./utils";
 import { makeMaskTilesData, mTile } from "./mTile";
 
 export const makeBackground = async (): Promise<mTile[][]> => {

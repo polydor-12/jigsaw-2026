@@ -6,7 +6,7 @@ import {
   mobileNow,
   myReturn,
   textureSize,
-} from "./myClasses";
+} from "./utils";
 import { makeBackground } from "./makeBackground";
 import { mTile } from "./mTile";
 import { makePTiles, pTile } from "./pTile";

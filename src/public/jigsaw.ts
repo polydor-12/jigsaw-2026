@@ -1,5 +1,5 @@
 import * as PIXI from "pixi.js";
-import { cookieRead, cookieWrite, makeFloor, myReturn } from "./myClasses";
+import { cookieRead, cookieWrite, makeFloor, myReturn } from "./utils";
 import { initFirebase } from "./firebase";
 import { JigsawFloor } from "./jigsawFloor";
 

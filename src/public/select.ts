@@ -12,7 +12,7 @@ import {
   RIGHT,
   textPrepare,
   tileShadow,
-} from "./myClasses";
+} from "./utils";
 import { jigsawRestart, myJigsawFloor } from "./jigsaw";
 
 export interface positionData {

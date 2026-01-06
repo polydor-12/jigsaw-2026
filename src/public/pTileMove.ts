@@ -1,5 +1,5 @@
 import { myJigsawFloor } from "./jigsaw";
-import { cookieWrite, spriteCombine } from "./myClasses";
+import { cookieWrite, spriteCombine } from "./utils";
 import { pTile } from "./pTile";
 
 export const makeSpriteMove = (p: pTile) => {

@@ -9,7 +9,7 @@ import {
   spriteCombine,
   textureToSprite,
   tileShadow,
-} from "./myClasses";
+} from "./utils";
 import { makeSpriteMove } from "./pTileMove";
 
 // 개별 퍼즐 조각의 정보를 담는 인터페이스
