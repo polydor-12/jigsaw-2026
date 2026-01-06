@@ -133,13 +133,7 @@ export const getTile = async (t: mTile) => {
   p.s.position.set(p.ox, p.oy);
   p.s.zIndex = 10 + Math.floor(Math.random() * 10);
 
-  // c.parent?.removeChild(c);
-
-  // p.cb.parent?.removeChild(p.cb, p.cp);
   p.zIndex = p.nx + p.ny * f.tNum;
-
-  console.log("getTile : ");
-
   pTiles.push(p);
   f.bg2.addChild(p.s);
 };
@@ -308,7 +302,6 @@ export const makeSpriteMove = (p: pTile) => {
     };
     p.s.on("touchstart", onDragStart).on("touchend", onDragEnd);
   };
-  console.log("makeSpriteMove : ");
 
   if (!p.done) {
     // 아직 맞춰지지 않은 조각
