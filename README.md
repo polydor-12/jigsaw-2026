@@ -1,6 +1,6 @@
 # Pixi + vite
 
-A "ready to dev" environment to work with PIXI.js, webpack & typescript for web oriented games/projects. Use it as a seed to begin a new project.
+A "ready to dev" environment to work with PIXI.js, vite & typescript for web oriented games/projects. Use it as a seed to begin a new project.
 
 ## Launch it
 
