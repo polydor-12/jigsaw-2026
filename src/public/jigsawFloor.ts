@@ -9,8 +9,9 @@ import {
 } from "./myClasses";
 import { makeBackground } from "./makeBackground";
 import { mTile } from "./mTile";
-import { makePTiles, pTile, tileScatter } from "./pTile";
+import { makePTiles, pTile } from "./pTile";
 import { selectStart } from "./select";
+import { tileScatter } from "./pTileMove";
 
 export class JigsawFloor {
   main = new PIXI.Container(); // 전체 게임 요소를 담는 최상위 컨테이너

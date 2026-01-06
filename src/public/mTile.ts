@@ -210,8 +210,5 @@ export const getSvgTileTexture = async (tile: mTile) => {
         tile.border = texture;
         break;
     }
-
-    // tile.x_p = tSize / 2 + ((tSize * 5) / 7) * tile.x; // 타일의 최종 위치 계산
-    // tile.y_p = tSize / 2 + ((tSize * 5) / 7) * tile.y;
   }
 };
