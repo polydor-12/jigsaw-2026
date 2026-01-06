@@ -1,30 +1,55 @@
 import * as PIXI from "pixi.js";
 import { svgToTexture } from "./utils";
 
-// 퍼즐 조각의 모양(mask) 정보를 담는 인터페이스
+/**
+ * @interface mTile
+ * @description 퍼즐 조각의 모양(mask)과 상태 정보를 담는 인터페이스입니다.
+ * 각 퍼즐 조각은 이 구조체에 따라 SVG 기반의 텍스처를 생성하게 됩니다.
+ */
 export interface mTile {
+  /** @member {PIXI.Texture | null} blank - 퍼즐판의 빈 공간을 채우는 텍스처입니다. 조각이 맞춰지기 전의 배경 모양입니다. */
   blank: PIXI.Texture | null;
+  /** @member {PIXI.Texture | null} image - 실제 이미지에 적용될 마스크 텍스처입니다. 이 모양대로 이미지가 잘리게 됩니다. */
   image: PIXI.Texture | null;
+  /** @member {PIXI.Texture | null} border - 퍼즐 조각의 테두리를 그리는 텍스처입니다. */
   border: PIXI.Texture | null;
-  x: number; // 퍼즐판에서의 x 좌표 (인덱스)
-  y: number; // 퍼즐판에서의 y 좌표 (인덱스)
-  up: number; // 위쪽 돌기 모양 ID
-  down: number; // 아래쪽 돌기 모양 ID
-  left: number; // 왼쪽 돌기 모양 ID
-  right: number; // 오른쪽 돌기 모양 ID
-  x_p: number; // 퍼즐판 위 완성 위치의 x 픽셀 좌표
-  y_p: number; // 퍼즐판 위 완성 위치의 y 픽셀 좌표
-  done: boolean; // 쿠키 정보에 따라 미리 완성되었는지 여부
+  /** @member {number} x - 퍼즐판 내에서의 가로(x) 인덱스 좌표입니다. (0부터 시작) */
+  x: number;
+  /** @member {number} y - 퍼즐판 내에서의 세로(y) 인덱스 좌표입니다. (0부터 시작) */
+  y: number;
+  /** @member {number} up - 위쪽 면의 돌기 모양을 나타내는 ID입니다. 0은 평평한 면을 의미합니다. */
+  up: number;
+  /** @member {number} down - 아래쪽 면의 돌기 모양을 나타내는 ID입니다. 0은 평평한 면을 의미합니다. */
+  down: number;
+  /** @member {number} left - 왼쪽 면의 돌기 모양을 나타내는 ID입니다. 0은 평평한 면을 의미합니다. */
+  left: number;
+  /** @member {number} right - 오른쪽 면의 돌기 모양을 나타내는 ID입니다. 0은 평평한 면을 의미합니다. */
+  right: number;
+  /** @member {number} x_p - 퍼즐판 위에서 조각이 완성될 때의 실제 x 픽셀 좌표입니다. */
+  x_p: number;
+  /** @member {number} y_p - 퍼즐판 위에서 조각이 완성될 때의 실제 y 픽셀 좌표입니다. */
+  y_p: number;
+  /** @member {boolean} done - 해당 조각이 이미 완성되었는지 여부를 나타냅니다. (예: 쿠키 정보로 복원될 때 사용) */
+  done: boolean;
 }
 
+/**
+ * @function makeMaskTilesData
+ * @description 전체 퍼즐 조각들의 모양(돌기)과 초기 상태 데이터를 생성합니다.
+ * @param {number} tNum - 가로/세로에 들어갈 퍼즐 조각의 개수입니다.
+ * @param {number} rNum - 사용 가능한 돌기 모양의 총 개수입니다.
+ * @param {number[][]} p - 이전에 완성된 퍼즐 조각들의 좌표 배열입니다. (쿠키 등에서 불러옴)
+ * @returns {Promise<mTile[][]>} - 생성된 mTile 2차원 배열을 Promise로 반환합니다.
+ */
 export const makeMaskTilesData = async (
   tNum: number,
   rNum: number,
   p: number[][]
 ): Promise<mTile[][]> => {
-  // 퍼즐 조각들의 모양 데이터를 생성하는 함수
-  const tiles: mTile[][] = []; // 타일 배열 초기화
-  // 1. 빈 타일 데이터 구조 생성
+  // 최종적으로 반환될 2차원 mTile 배열을 초기화합니다.
+  const tiles: mTile[][] = [];
+
+  // 1. 빈 타일 데이터 구조 생성: 모든 조각을 기본값으로 초기화합니다.
   for (let y = 0; y < tNum; y++) {
     const xt: mTile[] = [];
     for (let x = 0; x < tNum; x++) {
@@ -46,13 +71,19 @@ export const makeMaskTilesData = async (
     }
     tiles.push(xt);
   }
+
   // 2. 각 타일의 상하좌우 돌기 모양 랜덤하게 지정
+  // 퍼즐 조각들이 서로 맞물리도록 인접한 조각의 모양을 이어받습니다.
   for (let y = 0; y < tNum; y++) {
     for (let x = 0; x < tNum; x++) {
-      const u = y == 0 ? 0 : tiles[x][y - 1].down; // 위쪽은 이웃한 타일의 아래쪽 돌기 모양을 이어받음
-      const d = y == tNum - 1 ? 0 : Math.floor(Math.random() * (rNum - 2)) + 1; // 아래쪽은 랜덤 생성 (경계선 제외)
-      const l = x == 0 ? 0 : tiles[x - 1][y].right; // 왼쪽은 이웃한 타일의 오른쪽 돌기 모양을 이어받음
-      const r = x == tNum - 1 ? 0 : Math.floor(Math.random() * (rNum - 2)) + 1; // 오른쪽은 랜덤 생성 (경계선 제외)
+      // 위쪽(up): 맨 윗줄이 아니면, 바로 위 타일의 아래쪽(down) 모양을 그대로 이어받습니다.
+      const u = y == 0 ? 0 : tiles[x][y - 1].down;
+      // 아래쪽(down): 맨 아랫줄이면 0(평평함), 아니면 랜덤한 돌기 모양을 생성합니다.
+      const d = y == tNum - 1 ? 0 : Math.floor(Math.random() * (rNum - 2)) + 1;
+      // 왼쪽(left): 맨 왼쪽 줄이 아니면, 바로 왼쪽 타일의 오른쪽(right) 모양을 그대로 이어받습니다.
+      const l = x == 0 ? 0 : tiles[x - 1][y].right;
+      // 오른쪽(right): 맨 오른쪽 줄이면 0(평평함), 아니면 랜덤한 돌기 모양을 생성합니다.
+      const r = x == tNum - 1 ? 0 : Math.floor(Math.random() * (rNum - 2)) + 1;
       tiles[x][y] = {
         blank: null,
         image: null,
@@ -69,68 +100,84 @@ export const makeMaskTilesData = async (
       };
     }
   }
+
   // 3. 쿠키에 저장된 완성된 타일 정보 반영
+  // 이전에 사용자가 맞춘 조각들의 `done` 상태를 true로 설정합니다.
   p.forEach((xy: number[]) => {
-    // console.log(jigsawPosition, xy);
-    // console.log("this.tNum :", tNum);
     tiles[xy[0]][xy[1]].done = true;
   });
+
+  // 모든 타일 데이터에 대해 SVG 텍스처를 비동기적으로 생성합니다.
   await getSvgTileAllTexture(tiles);
   return tiles;
 };
 
+/**
+ * @function getSvgTileAllTexture
+ * @description mTile 데이터 배열을 받아 모든 타일의 SVG 텍스처를 비동기적으로 생성하고 적용합니다.
+ * @param {mTile[][]} mTileData - 텍스처를 생성할 mTile 2차원 배열입니다.
+ */
 export const getSvgTileAllTexture = async (mTileData: mTile[][]) => {
+  // 모든 타일에 대한 텍스처 생성 Promise 배열을 만듭니다.
   const allPromises = mTileData.flatMap((data) =>
     data.map(async (tileData) => {
       await getSvgTileTexture(tileData);
     })
   );
+  // 모든 Promise가 완료될 때까지 기다립니다.
   await Promise.all(allPromises);
-  console.log("promise all :");
+  console.log("promise all : All tile textures are generated.");
 };
 
+/**
+ * @interface SvgData
+ * @description SVG 문자열을 생성하는 데 필요한 스타일과 데이터를 정의하는 인터페이스입니다.
+ */
 interface SvgData {
-  fill_color: string;
-  stroke_width: string;
-  stroke_color: string;
-  block_color: string;
-  svgContent_front: string;
-  svgContent_end: string;
-  prop: PIXI.Texture<PIXI.TextureSource<any>> | null;
+  fill_color: string; // SVG path의 채우기 색상
+  stroke_width: string; // SVG path의 테두리 두께
+  stroke_color: string; // SVG path의 테두리 색상
+  block_color: string; // SVG에서 마스킹될(잘려나갈) 부분의 색상
+  svgContent_front: string; // 돌기 모양(path)들이 추가될 SVG 앞부분 문자열
+  svgContent_end: string; // 직선 라인(rect)들이 추가될 SVG 뒷부분 문자열
+  prop: PIXI.Texture<PIXI.TextureSource<any>> | null; // 현재 생성 중인 텍스처 종류 (blank, image, border)
 }
 
+/**
+ * @function getSvgTileTexture
+ * @description 단일 mTile 데이터로부터 3가지 종류(blank, image, border)의 SVG 마스크 텍스처를 생성합니다.
+ * @param {mTile} tile - 텍스처를 생성할 대상 mTile 객체입니다.
+ */
 export const getSvgTileTexture = async (tile: mTile) => {
-  // mTile 데이터로부터 SVG 마스크를 생성하는 함수
-
+  // 3가지 종류의 텍스처(blank, image, border)를 생성하기 위해 3번 반복합니다.
   for (let sw = 0; sw < 3; sw++) {
-    const svgData = {
+    const svgData: SvgData = {
       fill_color: "",
       stroke_width: "",
       stroke_color: "",
       block_color: "",
       svgContent_front: "",
       svgContent_end: "",
-      prop: null as PIXI.Texture<PIXI.TextureSource<any>> | null,
+      prop: null,
     };
 
-    switch (
-      sw // sw (switch) 값에 따라 스타일(색상, 테두리 두께) 결정
-    ) {
-      case 0: // 퍼즐판의 빈 공간 모양
+    // sw 값에 따라 생성할 텍스처의 스타일(색상, 두께 등)을 결정합니다.
+    switch (sw) {
+      case 0: // Case 0: 퍼즐판의 빈 공간(blank) 모양
         svgData.fill_color = "#d9e6f2";
         svgData.stroke_width = 'stroke-width="5"';
         svgData.stroke_color = "#d9e6f2";
-        svgData.block_color = "#000000";
+        svgData.block_color = "#000000"; // 검은색 영역이 마스킹됩니다.
         svgData.prop = tile.blank;
         break;
-      case 1: // 퍼즐 조각 이미지의 마스크
+      case 1: // Case 1: 퍼즐 조각 이미지(image)의 마스크
         svgData.fill_color = "#ffffff";
         svgData.stroke_width = 'stroke-width="8"';
         svgData.stroke_color = "#ffffff";
         svgData.block_color = "#000000";
         svgData.prop = tile.image;
         break;
-      case 2: // 퍼즐 조각 테두리의 마스크
+      case 2: // Case 2: 퍼즐 조각 테두리(border)의 마스크
         svgData.fill_color = "#ffffff";
         svgData.stroke_width = 'stroke-width="1"';
         svgData.stroke_color = "#ffffff";
@@ -138,23 +185,23 @@ export const getSvgTileTexture = async (tile: mTile) => {
         svgData.prop = tile.border;
         break;
     }
-    // 방향별(상,하,좌,우) 돌기 모양 SVG path 데이터
 
-    // tile 데이터의 up, down, left, right 값에 따라 SVG path 조합
+    // tile 데이터의 up, down, left, right 값(돌기 ID)에 따라 SVG path를 조합합니다.
     const direction = [tile.up, tile.down, tile.left, tile.right];
     for (let i = 0; i < direction.length; i++) {
       if (direction[i] != 0) {
-        // 돌기가 있는 경우
+        // 돌기가 있는 경우(ID가 0이 아님), 해당 방향과 ID에 맞는 SVG path 데이터를 추가합니다.
         svgData.svgContent_front +=
           svgPathFront(svgData) + svgLineData(svgData)[i][direction[i]] + `/>`;
       } else {
-        // 돌기가 없는 경우 (직선)
+        // 돌기가 없는 경우(직선), 해당 방향에 맞는 rect(사각형) 데이터를 추가하여 테두리를 막습니다.
         svgData.svgContent_end += svgLineData(svgData)[i][direction[i]];
       }
     }
 
-    // SVG를 PIXI 스프라이트로 변환
+    // 최종적으로 조합된 SVG 문자열을 PIXI.Texture로 변환합니다.
     const texture = await svgToTexture(svg(svgData));
+    // 생성된 텍스처를 mTile 객체의 적절한 속성에 할당합니다.
     switch (sw) {
       case 0:
         tile.blank = texture;
@@ -169,9 +216,21 @@ export const getSvgTileTexture = async (tile: mTile) => {
   }
 };
 
-// SVG 문자열
+/**
+ * @function svgPathFront
+ * @description SVG의 <path> 태그 시작 부분을 생성하는 헬퍼 함수입니다.
+ * @param {SvgData} svgData - SVG 스타일 데이터.
+ * @returns {string} - SVG <path> 태그의 앞부분 문자열.
+ */
 const svgPathFront = (svgData: SvgData) =>
   `<path fill="${svgData.fill_color}" stroke="#000000" ${svgData.stroke_width} stroke-miterlimit="10" d=`;
+
+/**
+ * @function svg
+ * @description 최종 SVG 문자열을 완성하는 헬퍼 함수입니다.
+ * @param {SvgData} svgData - SVG path와 스타일 데이터가 포함된 객체.
+ * @returns {string} - 완전한 SVG 마스크 문자열.
+ */
 const svg = (
   svgData: SvgData
 ) => `<svg version="1.1" id="레이어_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px"
@@ -179,9 +238,18 @@ const svg = (
                 ${svgData.svgContent_front} <polygon fill="${svgData.fill_color}" stroke="${svgData.stroke_color}" stroke-miterlimit="10" points="71.25,72.5 134.5,144 134.5,360 72,432.25 144,369.5 
                 360,369.5 431.75,432 368.5,360 368.5,144 432,72.25 360,135.5 144,135.5 "/>  ${svgData.svgContent_end} </svg>`;
 
-const svgLineData = (svgData: SvgData) => [
+/**
+ * @function svgLineData
+ * @description 각 방향(상, 하, 좌, 우)과 돌기 ID에 따른 SVG path 데이터 또는 rect 데이터를 반환하는 헬퍼 함수입니다.
+ * @param {SvgData} svgData - SVG 스타일 데이터 (주로 block_color 사용).
+ * @returns {string[][]} - [방향][돌기ID]에 해당하는 SVG 문자열을 담은 2차원 배열.
+ */
+const svgLineData = (svgData: SvgData): string[][] => [
+  // 0: up (위쪽)
   [
+    // 0: 평평한 면 (돌기 없음) - 위쪽 영역을 사각형으로 막습니다.
     `<rect x="0" fill="${svgData.block_color}" stroke="${svgData.block_color}" stroke-miterlimit="10" width="504" height="144"/>`,
+    // 1~5: 다양한 모양의 위쪽 돌기 SVG path 데이터
     `"M432,72.371c0,9.121-72,35.754-108,35.754
                     s9-90.063-81-90.063c-99.001,0-18,107.969-63,107.969S72,72.596,72,72.596L144,144.5h216L432,72.371z"`,
     `"M432,71.92c0,0-63-53.795-108-53.795
@@ -193,9 +261,11 @@ const svgLineData = (svgData: SvgData) => [
     `"M432,72.371c-45-18.121-81,8.754-117,35.754
                     c-28.8,21.6,90-90.063-54-90.063c-117,0-36,107.969-81,107.969S72,72.596,72,72.596l72,71.904h216L432,72.371z"`,
   ],
-  //down
+  // 1: down (아래쪽)
   [
+    // 0: 평평한 면 - 아래쪽 영역을 사각형으로 막습니다.
     `<rect y="360" fill="${svgData.block_color}" stroke="${svgData.block_color}" stroke-miterlimit="10" width="504" height="144"/>`,
+    // 1~5: 다양한 모양의 아래쪽 돌기 SVG path 데이터
     `"M432,432.371c0,9.121-72,35.754-108,35.754
                     s9-90.063-81-90.063c-99.001,0-18,107.969-63,107.969S72,432.596,72,432.596L144,360.5h216L432,432.371z"`,
     `"M432,431.92c0,0-63-53.795-108-53.795
@@ -207,9 +277,11 @@ const svgLineData = (svgData: SvgData) => [
     `"M432,432.371c-45-18.121-81,8.754-117,35.754
                     c-28.8,21.6,90-90.063-54-90.063c-117,0-36,107.969-81,107.969S72,432.596,72,432.596l72-72.096h216L432,432.371z"`,
   ],
-  // left
+  // 2: left (왼쪽)
   [
+    // 0: 평평한 면 - 왼쪽 영역을 사각형으로 막습니다.
     `<rect x="0" fill="${svgData.block_color}" stroke="${svgData.block_color}" stroke-miterlimit="10" width="144" height="504"/>`,
+    // 1~5: 다양한 모양의 왼쪽 돌기 SVG path 데이터
     `"M72.08,432c0,0,53.795-63,53.795-108
                     S17.938,360,17.938,261c0-90,90.031-45,90.031-81S80.977,72,71.856,72l71.644,72v216L72.08,432z"`,
     `"M71.629,432c-9.121,0-35.754-72-35.754-108
@@ -221,9 +293,11 @@ const svgLineData = (svgData: SvgData) => [
     `"M72.08,432c0,0,53.795-63,53.795-108
                     S17.938,360,17.938,243c0-144,111.631-25.2,90.031-54c-27-36-54.234-72-36.113-117l71.644,72v216L72.08,432z"`,
   ],
-  //right
+  // 3: right (오른쪽)
   [
+    // 0: 평평한 면 - 오른쪽 영역을 사각형으로 막습니다.
     `<rect x="360" fill="${svgData.block_color}" stroke="${svgData.block_color}" stroke-miterlimit="10" width="144" height="504"/>`,
+    // 1~5: 다양한 모양의 오른쪽 돌기 SVG path 데이터
     `"M432.08,432c0,0,53.795-63,53.795-108
                     s-107.938,36-107.938-63c0-90,90.031-45,90.031-81S440.977,72,431.855,72L359.5,144v216L432.08,432z"`,
     `"M431.629,432c-9.121,0-35.754-72-35.754-108
