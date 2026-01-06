@@ -157,7 +157,6 @@ const swiftTiles = (direction: number) => {
     let d: number;
     let t: PIXI.Texture;
     let s: PIXI.Sprite;
-    // let b: PIXI.Graphics
     switch (directions) {
       case LEFT:
         select.startNum = plus(select.startNum);
@@ -165,11 +164,8 @@ const swiftTiles = (direction: number) => {
         d = select.degrees[6];
         t = PIXI.Assets.get(select.sFileNames[select.endNum]);
         s = makeSelectSprite(d, t, select.selectC2, select.fSize);
-        // b = makeSelectSpriteShadow(d, t, select.selectC2, select.fSize)
         select.sevenTiles.push(s);
-        // sevenShadows.push(b)
         s.alpha = 0;
-        // b.alpha = 0
         break;
       case RIGHT:
         select.startNum = minus(select.startNum);
@@ -177,20 +173,15 @@ const swiftTiles = (direction: number) => {
         d = select.degrees[0];
         t = PIXI.Assets.get(select.sFileNames[select.startNum]);
         s = makeSelectSprite(d, t, select.selectC2, select.fSize);
-        // b = makeSelectSpriteShadow(d, t, select.selectC2, select.fSize)
         select.sevenTiles.unshift(s);
-        // sevenShadows.unshift(b)
         s.alpha = 0;
-        // b.alpha = 0
         break;
     }
     const appearLoop = () => {
-      // b.alpha += 1 / baseVector
       s.alpha += 1 / baseVector;
       if (s.alpha < 1) {
         requestAnimationFrame(appearLoop);
       } else {
-        // console.log('select.KEY :', select.KEY)
         if (select.KEY == LEFT || select.KEY == RIGHT) {
           swiftTiles(select.KEY);
           select.moveAccel++;
@@ -208,7 +199,6 @@ const swiftTiles = (direction: number) => {
       }
       tileV(0);
       t.shift();
-      // bs.shift()
       tileA(LEFT);
       break;
     case RIGHT:
@@ -217,7 +207,6 @@ const swiftTiles = (direction: number) => {
       }
       tileV(t.length - 1);
       t.pop();
-      // bs.pop()
       tileA(RIGHT);
       break;
   }
@@ -231,13 +220,10 @@ const mainTitle = () => {
   const myf = new PIXI.BlurFilter({
     strength: 7,
   });
-
   select.selectC1.addChild(fb, maskContainer, shadowContainer);
-
   const textBackground = new PIXI.Sprite(
     PIXI.Assets.get("assets/jigsaw/background.jpg")
   );
-
   /// 이전, 다음 버튼 텍스트
   const selectPrevNextTextPrepare = (
     s: string,
@@ -376,12 +362,9 @@ const mainTitle = () => {
     (fb.width * 2) / 3,
     0
   );
-  // const bb = boxButtonDraw(fEnd, 0x000000, (fb.width - fb.width * 2 / 3) / 2, (fb.width - fb.width * 1.2 / 2.2) / 2, fb.width * 2 / 3, fb.width * 2 / 3)
-
   prevPhotoButton.on("pointerup", () => (select.KEY = 0)); // 마우스 떼면 select.KEY 초기화
   nextPhotoButton.on("pointerup", () => (select.KEY = 0));
   fb.addChild(prevPhotoButton, nextPhotoButton, centerPhotoButton);
-  // moveB(b)
 };
 const selectTileNumber = () => {
   // 퍼즐 조각 수를 선택하는 화면으로 전환하는 함수
