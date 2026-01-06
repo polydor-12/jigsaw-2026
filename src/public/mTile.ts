@@ -71,8 +71,8 @@ export const makeMaskTilesData = async (
   }
   // 3. 쿠키에 저장된 완성된 타일 정보 반영
   p.forEach((xy: number[]) => {
-    console.log("xy :", xy);
-    console.log("this.tNum :", tNum);
+    // console.log(jigsawPosition, xy);
+    // console.log("this.tNum :", tNum);
     tiles[xy[0]][xy[1]].done = true;
   });
   await getSvgTileAllTexture(tiles);
