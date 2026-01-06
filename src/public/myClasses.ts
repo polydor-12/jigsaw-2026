@@ -229,6 +229,17 @@ export const boxDraw = (
   return g;
 };
 
+// export const graphicsToSprite = (g: PIXI.Graphics) => {
+//   const f = myJigsawFloor[0];
+//   const texture = f.renderer.generateTexture({
+//     target: g, // 렌더링할 대상 (Container, Sprite 등)
+//     resolution: 1, // 해상도 (기존 인자의 1에 해당)
+//     antialias: true, // 안티앨리어싱 (선택 사항, 결과물이 더 깔끔해짐)
+//   });
+//   const sprite = new PIXI.Sprite(texture);
+//   return sprite;
+// };
+
 export const boxButtonDraw = (
   f: Function,
   color: number,
@@ -244,6 +255,25 @@ export const boxButtonDraw = (
   b.on("pointerdown", () => f());
   b.alpha = alpha;
   return b;
+};
+
+export const getSpriteWithShadow = (t: PIXI.Texture) => {
+  const f = myJigsawFloor[0];
+  const s = new PIXI.Sprite(t);
+  const bG = boxDraw(0xffffff, 0, 0, s.width + s.width / 20 + f.shadowMargin); // 바탕을 더 크게
+  const bB = boxDraw(0x000000, 0, 0, s.width - 4);
+  const background = containerToSprite(bG, true);
+  const spriteB = containerToSprite(bB, true);
+  background.alpha = 0;
+  spriteB.alpha = 0.7;
+  tileShadow(spriteB);
+  spriteB.position.set(s.width / 20);
+  // download_sprite_as_png(f.renderer, spriteB, "b0.png");
+  const tf = new PIXI.Container();
+  tf.addChild(background, spriteB, s);
+  const spriteWithShadow = containerToSprite(tf, true);
+  s.destroy({ children: true });
+  return spriteWithShadow;
 };
 
 /* =======================
@@ -306,7 +336,7 @@ export const cookieRead = () => {
 };
 
 export const containerToSprite = (
-  c: PIXI.Container,
+  c: PIXI.Container | PIXI.Graphics,
   remove: boolean = false
 ) => {
   // PIXI.Container를 PIXI.Sprite로 변환하는 함수 (렌더 텍스처 사용)

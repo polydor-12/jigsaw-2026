@@ -6,6 +6,7 @@ import {
   cookieWrite,
   degreesToRadians,
   download_sprite_as_png,
+  getSpriteWithShadow,
   LEFT,
   myReturn,
   RIGHT,
@@ -124,15 +125,13 @@ const swiftTiles = (direction: number) => {
       } else {
         s.alpha = 0.85;
       }
-      // if (i == 0) console.log('index :', index);
-      drawSpriteAndShadow(thisDegree, s, select.fSize);
-      // drawSpriteAndShadow(thisDegree, b, select.fSize, true)
+      drawSelectTileWithShadow(thisDegree, s, select.fSize);
+
       if (Math.abs(nDegree - thisDegree) > 0.01) {
         index++;
         requestAnimationFrame(moveLoop);
       } else {
-        drawSpriteAndShadow(nDegree, s, select.fSize);
-        // drawSpriteAndShadow(nDegree, b, select.fSize, true)
+        drawSelectTileWithShadow(nDegree, s, select.fSize);
       }
     };
     moveLoop();
@@ -469,7 +468,7 @@ const setPositions = (
   s.zIndex = r.size - m;
 };
 
-const drawSpriteAndShadow = (
+const drawSelectTileWithShadow = (
   // 스프라이트와 그림자를 그리는 함수
   degree: number,
   s: PIXI.Sprite | PIXI.Graphics,
@@ -484,41 +483,15 @@ const makeSelectSprite = (
   // 캐러셀에 표시될 이미지 스프라이트를 생성하는 함수 (그림자 포함)
   degree: number,
   t: PIXI.Texture,
-  c: PIXI.Container,
-  floorSize: number = 100
+  selectC2: PIXI.Container,
+  fSize: number = 100
 ) => {
-  const f = myJigsawFloor[0];
-  const s = new PIXI.Sprite(t);
-  const td = new PIXI.Container();
-  const b = boxDraw(0x000000, 0, 0, s.width);
-
-  td.addChild(b);
-  // b.position.set(s.width / 20);
-
-  const bb = containerToSprite(td);
-
-  // download_sprite_as_png(f.renderer, bb, "bb.png");
-
-  const tf = new PIXI.Container();
-
-  // sb.filters = [myFilter];
-  // sb.position.set(s.width / 20, s.width / 20);
-  tf.addChild(bb, s);
-  bb.alpha = 0.7;
-  tileShadow(bb);
-  bb.position.set(s.width / 20, s.width / 20);
-  // download_sprite_as_png(f.renderer, bb, "bb.png");
-
-  const r = getPositionAndSize(degree, floorSize);
-  // console.log('b.x, b.y :', b.x, b.y);
-  const ns = containerToSprite(tf);
-
-  // const ns = sb
-  ns.anchor.set(0.5, 0.5);
-  setPositions(ns, r);
-  c.addChild(ns);
-  // c.removeChild(tf)
-  return ns;
+  const selectTileWithShadow = getSpriteWithShadow(t);
+  const r = getPositionAndSize(degree, fSize);
+  selectTileWithShadow.anchor.set(0.5, 0.5);
+  setPositions(selectTileWithShadow, r);
+  selectC2.addChild(selectTileWithShadow);
+  return selectTileWithShadow;
 };
 
 const plus = (n: number) => (n == select.sFileNames.length - 1 ? 0 : n + 1); // 다음 인덱스 계산
