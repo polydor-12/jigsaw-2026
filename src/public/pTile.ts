@@ -124,7 +124,9 @@ export const getTile = async (t: mTile) => {
 
   const cc = new PIXI.Container(); // 3. 그림자와 이미지를 하나의 컨테이너에 합친 후, 다시 하나의 스프라이트로 변환
   // f.bg2.addChild(c);
-  cc.addChild(tS, p.sb, p.sp);
+  // cc.addChild(tS, p.sb, p.sp);
+  cc.addChild(tS, p.sp);
+  // cc.addChild(p.sb, p.sp);
 
   p.s = containerToSprite(cc); // 최종 조각 스프라이트
   p.s.anchor.set(0.5, 0.5);
@@ -206,7 +208,7 @@ export const makeSpriteMove = (p: pTile) => {
         f.shadowMargin
       );
       p.done = true;
-      f.endingCheck(); // 게임 종료 여부 확인
+      f.gameEndingCheck(); // 게임 종료 여부 확인
     };
 
     tileFixAction(p);
@@ -244,14 +246,21 @@ export const makeSpriteMove = (p: pTile) => {
     const onDragMove = (event: any) => {
       if (pickUp) {
         const newPosition = event.data.getLocalPosition(c.parent);
-        c.x =
-          newPosition.x <= parentWidth && newPosition.x >= 0
-            ? newPosition.x
-            : c.x;
-        c.y =
-          newPosition.y <= parentHeight && newPosition.y >= 0
-            ? newPosition.y
-            : c.y;
+        // console.log("onDragMove : ", newPosition);
+        if (
+          newPosition.x <= parentWidth &&
+          newPosition.x >= 0 &&
+          newPosition.y <= parentHeight &&
+          newPosition.y >= 0
+        ) {
+          c.x = newPosition.x;
+          c.y = newPosition.y;
+        } else {
+          // console.log("onDragMove : 해제 ", newPosition);
+          pickUp = false;
+          c.off("pointermove", onDragMove);
+          onDragEnd();
+        }
       }
     };
     c.on("pointerdown", onDragStart);
@@ -300,23 +309,6 @@ export const makeSpriteMove = (p: pTile) => {
     p.s.on("touchstart", onDragStart).on("touchend", onDragEnd);
   };
   console.log("makeSpriteMove : ");
-  // p.sb = containerToSprite(p.cb); // 1. 이미지와 테두리(그림자용) 컨테이너를 각각 스프라이트로 변환
-  // p.sp = containerToSprite(p.cp);
-  // const tS = tileShadow(p.sb); // 2. 그림자 스프라이트에 그림자 효과(블러) 적용
-  // tS.position.set(f.shadowMargin, f.shadowMargin);
-  // p.sb = tS;
-
-  // const cc = new PIXI.Container(); // 3. 그림자와 이미지를 하나의 컨테이너에 합친 후, 다시 하나의 스프라이트로 변환
-  // // f.bg2.addChild(c);
-  // cc.addChild(tS, p.sb, p.sp);
-
-  // p.s = containerToSprite(cc); // 최종 조각 스프라이트
-  // p.s.anchor.set(0.5, 0.5);
-  // p.s.position.set(p.ox, p.oy);
-  // p.s.zIndex = 10 + Math.floor(Math.random() * 10);
-  // // c.parent?.removeChild(c);
-  // p.cb.parent?.removeChild(p.cb, p.cp);
-  // p.zIndex = p.nx + p.ny * f.tNum;
 
   if (!p.done) {
     // 아직 맞춰지지 않은 조각

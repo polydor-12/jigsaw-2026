@@ -1,6 +1,5 @@
 import * as PIXI from "pixi.js";
 import { myJigsawFloor } from "./jigsaw";
-import { positionData } from "./select";
 
 /* =======================
    Key Codes

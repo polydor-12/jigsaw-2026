@@ -1,19 +1,12 @@
 import * as PIXI from "pixi.js";
 import {
   boxButtonDraw,
-  boxDraw,
-  containerToSprite,
   containerToSpriteAdd,
   cookieWrite,
-  degreesToRadians,
-  LEFT,
   mobileNow,
   myReturn,
-  RIGHT,
-  textPrepare,
   textureSize,
 } from "./myClasses";
-import { jigsawRestart } from "./jigsaw";
 import { makeBackground } from "./makeBackground";
 import { mTile } from "./mTile";
 import { makePTiles, pTile, tileScatter } from "./pTile";
@@ -91,7 +84,7 @@ export class JigsawFloor {
     console.log("p :", cookieP);
     // this.start();
   }
-  displayTextureResize = () => {
+  textureResizeForDisplay = () => {
     console.log("displayTextureResize");
     this.bgt =
       this.bgtOriginal.width > this.fSize
@@ -107,7 +100,7 @@ export class JigsawFloor {
     this.borderSprite.interactive = true;
     this.borderSprite.eventMode = "static";
     this.borderSprite.cursor = "pointer";
-    this.borderSprite.on("pointerdown", this.bgPrepare); // 클릭 시 원본 이미지 보기
+    this.borderSprite.on("pointerdown", this.backgroundPrepare); // 클릭 시 원본 이미지 보기
   };
   // getTile = async (t: mTile, pTiles: pTile[] = this.pTiles) => {
   //   // 하나의 퍼즐 조각 스프라이트를 생성하는 함수
@@ -175,7 +168,7 @@ export class JigsawFloor {
   //   pTiles.push(p);
   // };
 
-  start = async () => {
+  gameStart = async () => {
     // 게임 시작을 위한 전체 프로세스
 
     console.log("start : ");
@@ -190,7 +183,7 @@ export class JigsawFloor {
     selectStart(this.r); // 5. 이미지 선택 화면 시작
   };
 
-  endingCheck = () => {
+  gameEndingCheck = () => {
     // 모든 조각이 맞춰졌는지 확인하는 함수
     let count = 0;
     this.pTiles.forEach((pt) => {
@@ -200,10 +193,10 @@ export class JigsawFloor {
       // 남은 조각이 없으면
       console.log("남은 타일 갯수 :", count);
       cookieWrite({ jigsawFolder: "", jigsawFile: "", jigsawPosition: "" }); // 쿠키 초기화
-      this.ending(); // 엔딩 애니메이션 실행
+      this.gameEnding(); // 엔딩 애니메이션 실행
     }
   };
-  ending = () => {
+  gameEnding = () => {
     // 엔딩 애니메이션 함수
     // let s = this.containerToSpriteAdd(this.main)
     const s = this.borderSprite;
@@ -227,7 +220,7 @@ export class JigsawFloor {
     resizeP();
   };
 
-  bgPrepare = () => {
+  backgroundPrepare = () => {
     // 퍼즐판을 클릭했을 때 원본 이미지를 보여주는 함수
     const fullP = new PIXI.Sprite();
     const fullPicture = new PIXI.Container();
@@ -246,6 +239,7 @@ export class JigsawFloor {
       // 닫기 버튼 액션
       console.log("show selectStart");
       fullPicture.parent?.removeChild(fullPicture);
+      console.log("this.selectMode : ", this.selectMode);
       if (!this.selectMode) selectStart(this.r);
     };
     const shufflePTiles = () => {
@@ -294,7 +288,7 @@ export class JigsawFloor {
     this.bg3 = new PIXI.Container();
     this.main.addChild(this.bg3);
     this.borderSprite.off("pointerdown");
-    this.borderSprite.on("pointerdown", this.bgPrepare);
+    this.borderSprite.on("pointerdown", this.backgroundPrepare);
   };
   // selectStart = (f: myReturn) => {
   //   // 이미지 선택 화면을 시작하는 함수
