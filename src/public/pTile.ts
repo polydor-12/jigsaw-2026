@@ -4,9 +4,7 @@ import { myJigsawFloor } from "./jigsaw";
 import {
   boxDraw,
   containerToSprite,
-  cookieWrite,
   delay,
-  spriteCombine,
   textureToSprite,
   tileShadow,
 } from "./utils";
