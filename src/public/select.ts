@@ -97,6 +97,7 @@ export const selectStart = (r: myReturn) => {
   f.borderSprite.on("pointerdown", f.selectEnd); // borderSprite 클릭 시 selectEnd 호출
 
   // select 재시작 대비 초기화
+
   select.sFileNames = [];
   select.sevenTiles = [];
   select.selectC1.parent?.removeChild(select.selectC1); // 기존 컨테이너 제거
@@ -249,7 +250,8 @@ const mainTitle = () => {
    * @description 중앙 이미지 버튼 클릭 시 호출되는 함수입니다.
    * 이미지 선택 모드와 조각 수 선택 모드 간 전환 또는 게임 시작을 처리합니다.
    */
-  const centerPhotoButtonFunction = () => {
+  const centerPhotoButtonFunction = async () => {
+    const old_filename = "assets/jigsaw/" + f.folder + "/0" + f.file + ".jpg";
     if (!select.tileNumberMode) {
       // 이미지 선택 모드일 때 (조각 수 선택 모드로 전환)
       for (let i = 0; i < 3; i++) {
@@ -270,6 +272,8 @@ const mainTitle = () => {
       selectTileNumber(); // 조각 수 선택 화면으로 전환
       select.tileNumberMode = true; // 조각 수 선택 모드 활성화
     } else {
+      const old_tNum = f.tNum;
+      select.tileNumberMode = false;
       // 조각 수 선택 모드일 때 (최종 선택 완료 및 게임 시작)
       for (let i = 0; i < 3; i++) {
         // 캐러셀 인덱스를 3칸 앞으로 이동시켜 중앙 이미지를 첫 번째 이미지로 만듭니다.
@@ -284,7 +288,7 @@ const mainTitle = () => {
         cookieWrite({ jigsawPosition: "" });
       }
       f.tNum = Number(s); // 선택된 조각 수 설정
-      jigsawRestart(f.folder, f.file, f.tNum); // 선택한 정보로 게임 재시작
+      await jigsawRestart(f.folder, f.file, f.tNum, old_tNum, old_filename); // 선택한 정보로 게임 재시작
     }
   };
 

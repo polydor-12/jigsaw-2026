@@ -87,6 +87,7 @@ export class JigsawFloor {
   }
   textureResizeForDisplay = () => {
     console.log("displayTextureResize");
+    console.log(this.bgtOriginal, this.bgt);
     this.bgt =
       this.bgtOriginal.width > this.fSize
         ? textureSize(this.bgtOriginal, this.fSize)

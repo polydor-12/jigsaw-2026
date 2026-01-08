@@ -194,17 +194,30 @@ export const svgToTexture = async (svg: string): Promise<PIXI.Texture> => {
  */
 
 export const svgToTextureWithKey = async (
+  //   key: string,
+  //   svg: string
+  // ): Promise<PIXI.Texture> => {
+  //   // SVG 문자열을 Data URL 형식으로 인코딩합니다.
+  //   const encoded = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  //   // key에 해당하는 엔트리를 등록
+  //   // 한 번에 이름(name)과 소스(src)를 지정해서 로드
+  //   const texture = await PIXI.Assets.load<PIXI.Texture>({
+  //     name: key,
+  //     src: encoded,
+  //   });
+  //   return texture;
+
   key: string,
   svg: string
 ): Promise<PIXI.Texture> => {
-  // SVG 문자열을 Data URL 형식으로 인코딩합니다.
   const encoded = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-  // key에 해당하는 엔트리를 등록
-  // 한 번에 이름(name)과 소스(src)를 지정해서 로드
-  const texture = await PIXI.Assets.load<PIXI.Texture>({
-    name: key,
-    src: encoded,
-  });
+
+  // 1) 안전하게 등록
+  const id = key;
+  PIXI.Assets.add({ alias: id, src: encoded });
+  console.log(id);
+  // 2) 이름(key)으로 로드하면 캐시에 key로 저장되어 반환됩니다.
+  const texture = await PIXI.Assets.load<PIXI.Texture>(id);
 
   return texture;
 };

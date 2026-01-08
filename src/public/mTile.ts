@@ -1,5 +1,5 @@
 import * as PIXI from "pixi.js";
-import { svgToTexture, textureToSprite } from "./utils";
+import { svgToTextureWithKey, textureToSprite } from "./utils";
 import { myJigsawFloor } from "./jigsaw";
 import { getTile } from "./pTile";
 
@@ -9,12 +9,12 @@ import { getTile } from "./pTile";
  * 각 퍼즐 조각은 이 구조체에 따라 SVG 기반의 텍스처를 생성하게 됩니다.
  */
 export interface mTile {
-  /** @member {PIXI.Texture | null} blank - 퍼즐판의 빈 공간을 채우는 텍스처입니다. 조각이 맞춰지기 전의 배경 모양입니다. */
-  blank: PIXI.Texture | null;
-  /** @member {PIXI.Texture | null} image - 실제 이미지에 적용될 마스크 텍스처입니다. 이 모양대로 이미지가 잘리게 됩니다. */
-  image: PIXI.Texture | null;
-  /** @member {PIXI.Texture | null} border - 퍼즐 조각의 테두리를 그리는 텍스처입니다. */
-  border: PIXI.Texture | null;
+  // /** @member {PIXI.Texture | null} blank - 퍼즐판의 빈 공간을 채우는 텍스처입니다. 조각이 맞춰지기 전의 배경 모양입니다. */
+  // blank: PIXI.Texture | null;
+  // /** @member {PIXI.Texture | null} image - 실제 이미지에 적용될 마스크 텍스처입니다. 이 모양대로 이미지가 잘리게 됩니다. */
+  // image: PIXI.Texture | null;
+  // /** @member {PIXI.Texture | null} border - 퍼즐 조각의 테두리를 그리는 텍스처입니다. */
+  // border: PIXI.Texture | null;
   /** @member {number} x - 퍼즐판 내에서의 가로(x) 인덱스 좌표입니다. (0부터 시작) */
   x: number;
   /** @member {number} y - 퍼즐판 내에서의 세로(y) 인덱스 좌표입니다. (0부터 시작) */
@@ -56,9 +56,9 @@ export const makeMaskTilesData = async (
     const xt: mTile[] = [];
     for (let x = 0; x < tNum; x++) {
       const mT: mTile = {
-        blank: null,
-        image: null,
-        border: null,
+        // blank: null,
+        // image: null,
+        // border: null,
         x: x,
         y: y,
         up: 0,
@@ -87,9 +87,9 @@ export const makeMaskTilesData = async (
       // 오른쪽(right): 맨 오른쪽 줄이면 0(평평함), 아니면 랜덤한 돌기 모양을 생성합니다.
       const r = x == tNum - 1 ? 0 : Math.floor(Math.random() * (rNum - 2)) + 1;
       tiles[x][y] = {
-        blank: null,
-        image: null,
-        border: null,
+        // blank: null,
+        // image: null,
+        // border: null,
         x: x,
         y: y,
         up: u,
@@ -142,7 +142,7 @@ interface SvgData {
   block_color: string; // SVG에서 마스킹될(잘려나갈) 부분의 색상
   svgContent_front: string; // 돌기 모양(path)들이 추가될 SVG 앞부분 문자열
   svgContent_end: string; // 직선 라인(rect)들이 추가될 SVG 뒷부분 문자열
-  prop: PIXI.Texture<PIXI.TextureSource<any>> | null; // 현재 생성 중인 텍스처 종류 (blank, image, border)
+  // prop: PIXI.Texture<PIXI.TextureSource<any>> | null; // 현재 생성 중인 텍스처 종류 (blank, image, border)
 }
 
 /**
@@ -157,50 +157,38 @@ const svgData: SvgData = {
   block_color: "",
   svgContent_front: "",
   svgContent_end: "",
-  prop: null,
 };
 
 const svgDataToInputFunction: Function[] = [
   // Case 0: 퍼즐판의 빈 공간(blank) 모양
-  (tile: mTile) => {
+  () => {
     svgData.fill_color = "#d9e6f2";
     svgData.stroke_width = 'stroke-width="5"';
     svgData.stroke_color = "#d9e6f2";
     svgData.block_color = "#000000"; // 검은색 영역이 마스킹됩니다.
-    svgData.prop = tile.blank;
   },
   // Case 1: 퍼즐 조각 이미지(image)의 마스크
-  (tile: mTile) => {
+  () => {
     svgData.fill_color = "#ffffff";
     svgData.stroke_width = 'stroke-width="8"';
     svgData.stroke_color = "#ffffff";
     svgData.block_color = "#000000";
-    svgData.prop = tile.image;
   },
   // Case 2: 퍼즐 조각 테두리(border)의 마스크
-  (tile: mTile) => {
+  () => {
     svgData.fill_color = "#ffffff";
     svgData.stroke_width = 'stroke-width="1"';
     svgData.stroke_color = "#ffffff";
     svgData.block_color = "#000000";
-    svgData.prop = tile.border;
   },
 ];
 
-const props = [
-  (tile: mTile, texture: PIXI.Texture) => {
-    tile.blank = texture;
-  },
-  (tile: mTile, texture: PIXI.Texture) => {
-    tile.image = texture;
-  },
-  (tile: mTile, texture: PIXI.Texture) => {
-    tile.border = texture;
-  },
-];
 export const getSvgTileTexture = async (tile: mTile) => {
   // 3가지 종류의 텍스처(blank, image, border)를 생성하기 위해 3번 반복합니다.
-
+  const f = myJigsawFloor[0];
+  let blank: PIXI.Texture | null = null;
+  let image: PIXI.Texture | null = null;
+  let border: PIXI.Texture | null = null;
   for (let sw = 0; sw < 3; sw++) {
     svgData.svgContent_front = "";
     svgData.svgContent_end = "";
@@ -221,20 +209,40 @@ export const getSvgTileTexture = async (tile: mTile) => {
       }
     }
     // 최종적으로 조합된 SVG 문자열을 PIXI.Texture로 변환합니다.
-    const texture = await svgToTexture(svg(svgData));
+
+    const texture = await svgToTextureWithKey(
+      tile.x + "-" + tile.y + "-" + sw,
+      // setSvgWidthHeightByDom(svg(svgData), f.tSize)
+      svg(svgData)
+    );
+    // console.log(
+    //   "svg(svgData) :",
+    //   setSvgWidthHeightByDom(svg(svgData), f.tSize)
+    // );
+
     // 생성된 텍스처를 mTile 객체의 적절한 속성에 할당합니다.
 
-    props[sw](tile, texture);
+    switch (sw) {
+      case 0:
+        blank = texture;
+        break;
+      case 1:
+        image = texture;
+        break;
+      case 2:
+        border = texture;
+        break;
+    }
   }
-  const f = myJigsawFloor[0];
-  const s = textureToSprite(tile.blank as PIXI.Texture, f.tSize);
+
+  const s = textureToSprite(blank as PIXI.Texture, f.tSize);
   // 타일의 최종 완성 위치 (픽셀 좌표)를 계산합니다.
   tile.x_p = f.tSize / 2 + ((f.tSize * 5) / 7) * tile.x;
   tile.y_p = f.tSize / 2 + ((f.tSize * 5) / 7) * tile.y;
   s.position.set(tile.x_p, tile.y_p); // 스프라이트 위치 설정
   f.bg1.addChild(s); // bg1 컨테이너에 빈 조각 스프라이트 추가
 
-  getTile(tile);
+  getTile(tile, image as PIXI.Texture, border as PIXI.Texture);
 };
 
 /**
@@ -331,3 +339,27 @@ const svgLineData = (svgData: SvgData): string[][] => [
                     s-107.938,36-107.938-81c0-144,111.631-25.2,90.031-54c-27-36-54.234-72-36.113-117L359.5,144v216L432.08,432z"`,
   ],
 ];
+export const setSvgWidthHeightByDom = (
+  svgString: string,
+  width: number = 504,
+  height = width
+): string => {
+  // heightValue를 주지 않으면 widthValue를 높이에도 사용
+
+  // DOMParser 사용 (브라우저 환경)
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(svgString, "image/svg+xml");
+
+  const svgEl = doc.documentElement;
+  if (!svgEl || svgEl.nodeName.toLowerCase() !== "svg") {
+    throw new Error("유효한 SVG 문자열이 아닙니다.");
+  }
+
+  // 기존 width/height 속성 제거(있으면) 후 새 값 설정
+  svgEl.setAttribute("width", "" + width);
+  svgEl.setAttribute("height", "" + height);
+
+  // 문자열로 반환
+  const serializer = new XMLSerializer();
+  return serializer.serializeToString(doc);
+};

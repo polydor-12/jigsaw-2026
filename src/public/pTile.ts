@@ -75,7 +75,12 @@ export const makePTiles = async (mTileData: mTile[][]) => {
  * @param {PIXI.Texture} image - 개별 퍼즐 조각의 image texture.
  * @param {PIXI.Texture} border - 개별 퍼즐 조각의 border texture.
  */
-export const getTile = (t: mTile) => {
+// export const getTile = (t: mTile) => {
+export const getTile = (
+  t: mTile,
+  image: PIXI.Texture,
+  border: PIXI.Texture
+) => {
   const f = myJigsawFloor[0]; // 전역 jigsawFloor 인스턴스
   const c = new PIXI.Container(); // 임시 컨테이너
   const pTiles: pTile[] = f.pTiles; // 현재 퍼즐 조각 배열
@@ -85,7 +90,8 @@ export const getTile = (t: mTile) => {
   const t_y = f.bSize / 2 + ((f.bSize * 5) / 7) * t.y;
 
   // mTile에서 생성된 이미지 마스크 텍스처를 사용하여 스프라이트를 생성합니다.
-  const m = textureToSprite(t.image as PIXI.Texture, f.tSize);
+  // const m = textureToSprite(t.image as PIXI.Texture, f.tSize);
+  const m = textureToSprite(image as PIXI.Texture, f.tSize);
 
   let x = t_x - f.bSize / 2;
   let y = t_y - f.bSize / 2;
@@ -117,7 +123,8 @@ export const getTile = (t: mTile) => {
   const rectangle = boxDraw(0x000000, 0, 0, f.tSize, f.tSize);
 
   // mTile에서 생성된 테두리 마스크 텍스처를 사용하여 스프라이트를 생성합니다.
-  const mmm = textureToSprite(t.border as PIXI.Texture, f.tSize);
+  // const mmm = textureToSprite(t.border as PIXI.Texture, f.tSize);
+  const mmm = textureToSprite(border as PIXI.Texture, f.tSize);
   rectangle.mask = mmm; // 테두리 사각형에 테두리 마스크 적용
   mmm.anchor.set(0, 0); // 테두리 마스크의 앵커 포인트를 좌상단으로 설정
 
