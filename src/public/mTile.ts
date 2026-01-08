@@ -1,5 +1,7 @@
 import * as PIXI from "pixi.js";
-import { svgToTexture } from "./utils";
+import { svgToTexture, textureToSprite } from "./utils";
+import { myJigsawFloor } from "./jigsaw";
+import { getTile } from "./pTile";
 
 /**
  * @interface mTile
@@ -148,43 +150,63 @@ interface SvgData {
  * @description 단일 mTile 데이터로부터 3가지 종류(blank, image, border)의 SVG 마스크 텍스처를 생성합니다.
  * @param {mTile} tile - 텍스처를 생성할 대상 mTile 객체입니다.
  */
+const svgData: SvgData = {
+  fill_color: "",
+  stroke_width: "",
+  stroke_color: "",
+  block_color: "",
+  svgContent_front: "",
+  svgContent_end: "",
+  prop: null,
+};
+
+const svgDataToInputFunction: Function[] = [
+  // Case 0: 퍼즐판의 빈 공간(blank) 모양
+  (tile: mTile) => {
+    svgData.fill_color = "#d9e6f2";
+    svgData.stroke_width = 'stroke-width="5"';
+    svgData.stroke_color = "#d9e6f2";
+    svgData.block_color = "#000000"; // 검은색 영역이 마스킹됩니다.
+    svgData.prop = tile.blank;
+  },
+  // Case 1: 퍼즐 조각 이미지(image)의 마스크
+  (tile: mTile) => {
+    svgData.fill_color = "#ffffff";
+    svgData.stroke_width = 'stroke-width="8"';
+    svgData.stroke_color = "#ffffff";
+    svgData.block_color = "#000000";
+    svgData.prop = tile.image;
+  },
+  // Case 2: 퍼즐 조각 테두리(border)의 마스크
+  (tile: mTile) => {
+    svgData.fill_color = "#ffffff";
+    svgData.stroke_width = 'stroke-width="1"';
+    svgData.stroke_color = "#ffffff";
+    svgData.block_color = "#000000";
+    svgData.prop = tile.border;
+  },
+];
+
+const props = [
+  (tile: mTile, texture: PIXI.Texture) => {
+    tile.blank = texture;
+  },
+  (tile: mTile, texture: PIXI.Texture) => {
+    tile.image = texture;
+  },
+  (tile: mTile, texture: PIXI.Texture) => {
+    tile.border = texture;
+  },
+];
 export const getSvgTileTexture = async (tile: mTile) => {
   // 3가지 종류의 텍스처(blank, image, border)를 생성하기 위해 3번 반복합니다.
+
   for (let sw = 0; sw < 3; sw++) {
-    const svgData: SvgData = {
-      fill_color: "",
-      stroke_width: "",
-      stroke_color: "",
-      block_color: "",
-      svgContent_front: "",
-      svgContent_end: "",
-      prop: null,
-    };
+    svgData.svgContent_front = "";
+    svgData.svgContent_end = "";
+    svgDataToInputFunction[sw](tile);
 
     // sw 값에 따라 생성할 텍스처의 스타일(색상, 두께 등)을 결정합니다.
-    switch (sw) {
-      case 0: // Case 0: 퍼즐판의 빈 공간(blank) 모양
-        svgData.fill_color = "#d9e6f2";
-        svgData.stroke_width = 'stroke-width="5"';
-        svgData.stroke_color = "#d9e6f2";
-        svgData.block_color = "#000000"; // 검은색 영역이 마스킹됩니다.
-        svgData.prop = tile.blank;
-        break;
-      case 1: // Case 1: 퍼즐 조각 이미지(image)의 마스크
-        svgData.fill_color = "#ffffff";
-        svgData.stroke_width = 'stroke-width="8"';
-        svgData.stroke_color = "#ffffff";
-        svgData.block_color = "#000000";
-        svgData.prop = tile.image;
-        break;
-      case 2: // Case 2: 퍼즐 조각 테두리(border)의 마스크
-        svgData.fill_color = "#ffffff";
-        svgData.stroke_width = 'stroke-width="1"';
-        svgData.stroke_color = "#ffffff";
-        svgData.block_color = "#000000";
-        svgData.prop = tile.border;
-        break;
-    }
 
     // tile 데이터의 up, down, left, right 값(돌기 ID)에 따라 SVG path를 조합합니다.
     const direction = [tile.up, tile.down, tile.left, tile.right];
@@ -198,22 +220,21 @@ export const getSvgTileTexture = async (tile: mTile) => {
         svgData.svgContent_end += svgLineData(svgData)[i][direction[i]];
       }
     }
-
     // 최종적으로 조합된 SVG 문자열을 PIXI.Texture로 변환합니다.
     const texture = await svgToTexture(svg(svgData));
     // 생성된 텍스처를 mTile 객체의 적절한 속성에 할당합니다.
-    switch (sw) {
-      case 0:
-        tile.blank = texture;
-        break;
-      case 1:
-        tile.image = texture;
-        break;
-      case 2:
-        tile.border = texture;
-        break;
-    }
+
+    props[sw](tile, texture);
   }
+  const f = myJigsawFloor[0];
+  const s = textureToSprite(tile.blank as PIXI.Texture, f.tSize);
+  // 타일의 최종 완성 위치 (픽셀 좌표)를 계산합니다.
+  tile.x_p = f.tSize / 2 + ((f.tSize * 5) / 7) * tile.x;
+  tile.y_p = f.tSize / 2 + ((f.tSize * 5) / 7) * tile.y;
+  s.position.set(tile.x_p, tile.y_p); // 스프라이트 위치 설정
+  f.bg1.addChild(s); // bg1 컨테이너에 빈 조각 스프라이트 추가
+
+  getTile(tile);
 };
 
 /**

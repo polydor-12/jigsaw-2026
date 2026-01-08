@@ -1,6 +1,6 @@
 import * as PIXI from "pixi.js";
 import { myJigsawFloor } from "./jigsaw";
-
+import { initDevtools } from "@pixi/devtools";
 /* =======================
    Key Codes
 ======================= */
@@ -99,7 +99,7 @@ export const makeFloor = async (): Promise<myReturn> => {
     backgroundColor: 0xffffff,
     autoDensity: true,
   });
-
+  initDevtools({ app });
   // 생성된 캔버스의 스타일을 설정하여 페이지에 절대 위치로 블록 요소로 표시합니다.
   app.canvas.style.position = "absolute";
   app.canvas.style.display = "block";
@@ -183,6 +183,29 @@ export const svgToTexture = async (svg: string): Promise<PIXI.Texture> => {
   const encoded = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
   // PIXI.Assets.load를 사용하여 인코딩된 SVG를 텍스처로 로드합니다.
   const texture = await PIXI.Assets.load<PIXI.Texture>(encoded);
+  return texture;
+};
+/**
+ * @function svgToTextureWithKey
+ * @description SVG 문자열을 PIXI.Texture 객체로 변환하는 비동기 함수입니다.
+ * @param {string} key - texture key 문자열.
+ * @param {string} svg - 변환할 SVG XML 문자열.
+ * @returns {Promise<PIXI.Texture>} 생성된 PIXI.Texture 객체를 포함하는 Promise.
+ */
+
+export const svgToTextureWithKey = async (
+  key: string,
+  svg: string
+): Promise<PIXI.Texture> => {
+  // SVG 문자열을 Data URL 형식으로 인코딩합니다.
+  const encoded = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  // key에 해당하는 엔트리를 등록
+  // 한 번에 이름(name)과 소스(src)를 지정해서 로드
+  const texture = await PIXI.Assets.load<PIXI.Texture>({
+    name: key,
+    src: encoded,
+  });
+
   return texture;
 };
 

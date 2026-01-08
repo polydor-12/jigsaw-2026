@@ -47,14 +47,14 @@ export const makePTiles = async (mTileData: mTile[][]) => {
   // 전역으로 관리되는 jigsawFloor 인스턴스를 가져옵니다. (첫 번째 인스턴스 사용)
   const f = myJigsawFloor[0];
 
-  // 첫 번째 단계: 각 mTile 데이터로부터 개별 퍼즐 조각 스프라이트를 비동기적으로 생성합니다.
-  const allPromises1 = mTileData.flatMap((data) =>
-    data.map(async (mTile) => {
-      await getTile(mTile);
-    })
-  );
-  // 모든 조각 생성이 완료될 때까지 기다립니다.
-  await Promise.all(allPromises1);
+  // // 첫 번째 단계: 각 mTile 데이터로부터 개별 퍼즐 조각 스프라이트를 비동기적으로 생성합니다.
+  // const allPromises1 = mTileData.flatMap((data) =>
+  //   data.map(async (mTile) => {
+  //     await getTile(mTile);
+  //   })
+  // );
+  // // 모든 조각 생성이 완료될 때까지 기다립니다.
+  // await Promise.all(allPromises1);
 
   // 딜레이를 주어 시각적인 효과를 줍니다.
   await delay(1000);
@@ -72,8 +72,10 @@ export const makePTiles = async (mTileData: mTile[][]) => {
  * @description 단일 mTile 데이터로부터 하나의 완성된 퍼즐 조각 스프라이트(pTile)를 생성합니다.
  * 이 함수는 조각의 이미지, 마스크, 테두리, 그림자 등을 결합하여 최종 스프라이트를 만듭니다.
  * @param {mTile} t - 개별 퍼즐 조각의 마스크 및 위치 정보를 담고 있는 mTile 객체입니다.
+ * @param {PIXI.Texture} image - 개별 퍼즐 조각의 image texture.
+ * @param {PIXI.Texture} border - 개별 퍼즐 조각의 border texture.
  */
-export const getTile = async (t: mTile) => {
+export const getTile = (t: mTile) => {
   const f = myJigsawFloor[0]; // 전역 jigsawFloor 인스턴스
   const c = new PIXI.Container(); // 임시 컨테이너
   const pTiles: pTile[] = f.pTiles; // 현재 퍼즐 조각 배열

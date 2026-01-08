@@ -106,19 +106,5 @@ export const makeBackground = async (): Promise<mTile[][]> => {
   // 퍼즐 조각들의 마스크 데이터를 생성합니다.
   const mTileData = await makeMaskTilesData(f.tNum, 6, f.p);
 
-  // 생성된 mTile 데이터를 기반으로 빈 퍼즐 조각 스프라이트들을 생성하고 배치합니다.
-  const allPromises = mTileData.flatMap((data) =>
-    data.map(async (tileData) => {
-      // 각 mTile의 blank 텍스처를 사용하여 스프라이트를 생성합니다.
-      const s = textureToSprite(tileData.blank as PIXI.Texture, f.tSize);
-      // 타일의 최종 완성 위치 (픽셀 좌표)를 계산합니다.
-      tileData.x_p = f.tSize / 2 + ((f.tSize * 5) / 7) * tileData.x;
-      tileData.y_p = f.tSize / 2 + ((f.tSize * 5) / 7) * tileData.y;
-      s.position.set(tileData.x_p, tileData.y_p); // 스프라이트 위치 설정
-      f.bg1.addChild(s); // bg1 컨테이너에 빈 조각 스프라이트 추가
-    })
-  );
-  await Promise.all(allPromises); // 모든 빈 조각 스프라이트 생성이 완료될 때까지 기다립니다.
-
   return mTileData; // 생성된 mTile 데이터를 반환합니다.
 };
