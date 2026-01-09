@@ -1,6 +1,7 @@
 import * as PIXI from "pixi.js";
 import { myJigsawFloor } from "./jigsaw";
 import { initDevtools } from "@pixi/devtools";
+import { DataWithKey } from "./mTile";
 /* =======================
    Key Codes
 ======================= */
@@ -151,14 +152,14 @@ export const makeFloor = async (): Promise<myReturn> => {
  * @returns {Promise<PIXI.Sprite>} 생성된 PIXI.Sprite 객체를 포함하는 Promise.
  */
 export const svgToSprite = async (
+  key: string,
   svg: string,
   width: number = -1,
   height: number = width
 ): Promise<PIXI.Sprite> => {
-  // SVG 문자열을 Data URL 형식으로 인코딩합니다.
-  const encoded = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-  // PIXI.Assets.load를 사용하여 인코딩된 SVG를 텍스처로 로드합니다.
-  const texture = await PIXI.Assets.load<PIXI.Texture>(encoded);
+  // // SVG 문자열을 Data URL 형식으로 인코딩합니다.
+
+  const texture = await svgToTextureWithKey(key, svg);
   // 로드된 텍스처로 PIXI.Sprite를 생성합니다.
   const sprite = new PIXI.Sprite(texture);
 
@@ -173,40 +174,13 @@ export const svgToSprite = async (
 };
 
 /**
- * @function svgToTexture
- * @description SVG 문자열을 PIXI.Texture 객체로 변환하는 비동기 함수입니다.
- * @param {string} svg - 변환할 SVG XML 문자열.
- * @returns {Promise<PIXI.Texture>} 생성된 PIXI.Texture 객체를 포함하는 Promise.
- */
-export const svgToTexture = async (svg: string): Promise<PIXI.Texture> => {
-  // SVG 문자열을 Data URL 형식으로 인코딩합니다.
-  const encoded = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-  // PIXI.Assets.load를 사용하여 인코딩된 SVG를 텍스처로 로드합니다.
-  const texture = await PIXI.Assets.load<PIXI.Texture>(encoded);
-  return texture;
-};
-/**
  * @function svgToTextureWithKey
  * @description SVG 문자열을 PIXI.Texture 객체로 변환하는 비동기 함수입니다.
  * @param {string} key - texture key 문자열.
  * @param {string} svg - 변환할 SVG XML 문자열.
  * @returns {Promise<PIXI.Texture>} 생성된 PIXI.Texture 객체를 포함하는 Promise.
  */
-
 export const svgToTextureWithKey = async (
-  //   key: string,
-  //   svg: string
-  // ): Promise<PIXI.Texture> => {
-  //   // SVG 문자열을 Data URL 형식으로 인코딩합니다.
-  //   const encoded = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-  //   // key에 해당하는 엔트리를 등록
-  //   // 한 번에 이름(name)과 소스(src)를 지정해서 로드
-  //   const texture = await PIXI.Assets.load<PIXI.Texture>({
-  //     name: key,
-  //     src: encoded,
-  //   });
-  //   return texture;
-
   key: string,
   svg: string
 ): Promise<PIXI.Texture> => {
@@ -215,11 +189,40 @@ export const svgToTextureWithKey = async (
   // 1) 안전하게 등록
   const id = key;
   PIXI.Assets.add({ alias: id, src: encoded });
-  console.log(id);
   // 2) 이름(key)으로 로드하면 캐시에 key로 저장되어 반환됩니다.
   const texture = await PIXI.Assets.load<PIXI.Texture>(id);
-
   return texture;
+};
+
+export const svgToDataWithKey = (key: string, svg: string): DataWithKey => {
+  const encoded = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  const id = key;
+  return { alias: id, src: encoded };
+};
+
+export const dataWithKeyToTextureAll = (dataWithKeys: DataWithKey[]) => {
+  PIXI.Assets.add(dataWithKeys);
+};
+
+export const texturesFromDataWithKeys = async (dataWithKeys: DataWithKey[]) => {
+  const src = dataWithKeys.map((data) => data.src);
+  return await PIXI.Assets.load<PIXI.Texture>(src);
+};
+
+export const deleteTextures = async (tNum: number) => {
+  const tileTextures: string[] = [];
+  for (let x = 0; x < tNum; x++) {
+    for (let y = 0; y < tNum; y++) {
+      for (let n = 0; n < 3; n++) {
+        tileTextures.push("" + x + "-" + y + "-" + n);
+        // console.log("" + x + "-" + y + "-" + n);
+        // await PIXI.Assets.unload("" + x + "-" + y + "-" + n);
+      }
+    }
+  }
+
+  console.log(tileTextures);
+  await PIXI.Assets.unload(tileTextures);
 };
 
 /**
@@ -304,6 +307,7 @@ export const boxButtonDraw = (
   return b;
 };
 
+let getSpriteWithShadowCount = 0;
 /**
  * @function getSpriteWithShadow
  * @description 주어진 텍스처를 사용하여 그림자 효과가 적용된 PIXI.Sprite를 생성하는 함수입니다.
@@ -317,8 +321,12 @@ export const getSpriteWithShadow = (t: PIXI.Texture): PIXI.Sprite => {
   const bG = boxDraw(0xffffff, 0, 0, s.width + s.width / 20 + f.shadowMargin);
   const bB = boxDraw(0x000000, 0, 0, s.width - 4); // 그림자 본체가 될 검은색 사각형
   // 생성된 Graphics 객체들을 스프라이트로 변환합니다.
-  const background = containerToSprite(bG, true);
-  const spriteB = containerToSprite(bB, true);
+  const background = containerToSprite(
+    "bG" + getSpriteWithShadowCount,
+    bG,
+    true
+  );
+  const spriteB = containerToSprite("bB" + getSpriteWithShadowCount, bB, true);
   background.alpha = 0; // 배경은 투명하게 설정
   spriteB.alpha = 0.7; // 그림자 본체는 반투명하게 설정
   tileShadow(spriteB); // 그림자 본체에 블러 필터 적용
@@ -326,8 +334,13 @@ export const getSpriteWithShadow = (t: PIXI.Texture): PIXI.Sprite => {
   // download_sprite_as_png(f.renderer, spriteB, "b0.png"); // 디버깅용으로 주석 처리됨
   const tf = new PIXI.Container(); // 임시 컨테이너
   tf.addChild(background, spriteB, s); // 배경, 그림자, 원본 스프라이트를 컨테이너에 추가
-  const spriteWithShadow = containerToSprite(tf, true); // 컨테이너를 하나의 스프라이트로 변환
+  const spriteWithShadow = containerToSprite(
+    "tf" + getSpriteWithShadowCount,
+    tf,
+    true
+  ); // 컨테이너를 하나의 스프라이트로 변환
   s.destroy({ children: true }); // 원본 스프라이트와 그 자식들을 파괴하여 메모리 해제
+  getSpriteWithShadowCount++;
   return spriteWithShadow;
 };
 
@@ -434,6 +447,7 @@ export const cookieRead = (): { [key: string]: string } => {
  * @returns {PIXI.Sprite} 생성된 PIXI.Sprite 객체.
  */
 export const containerToSprite = (
+  key: string,
   c: PIXI.Container | PIXI.Graphics,
   remove: boolean = false
 ): PIXI.Sprite => {
@@ -443,6 +457,10 @@ export const containerToSprite = (
     resolution: 1, // 렌더링 해상도 (기존 PIXI v4/v5의 scaleFactor와 유사)
     antialias: true, // 안티앨리어싱 적용 여부
   });
+
+  // 원하는 이름(별칭) 부여
+  PIXI.Assets.cache.set(key, tex);
+
   // 생성된 텍스처로 새로운 PIXI.Sprite를 만듭니다.
   const combinedSprite = new PIXI.Sprite(tex);
   // remove 플래그가 true이면 원본 컨테이너와 그 자식들을 파괴하여 메모리를 해제합니다.
@@ -460,10 +478,11 @@ export const containerToSprite = (
  * @returns {PIXI.Sprite} 변환되어 부모 컨테이너에 추가된 새로운 PIXI.Sprite 객체.
  */
 export const containerToSpriteAdd = (
+  key: string,
   c: PIXI.Container,
   cp: PIXI.Container = c.parent as PIXI.Container
 ): PIXI.Sprite => {
-  const s = containerToSprite(c, true); // 컨테이너를 스프라이트로 변환하고 원본 파괴
+  const s = containerToSprite(key, c, true); // 컨테이너를 스프라이트로 변환하고 원본 파괴
   s.zIndex = c.zIndex; // 원본 컨테이너의 zIndex를 새 스프라이트에 적용
   cp.addChild(s); // 새 스프라이트를 부모 컨테이너에 추가
   // cp.removeChild(c); // 이 코드는 c.destroy({ children: true })에 의해 c가 이미 파괴되었으므로 제거할 필요가 없습니다.
@@ -481,6 +500,7 @@ export const containerToSpriteAdd = (
  * @returns {PIXI.Texture} 두 스프라이트가 합쳐진 새로운 PIXI.Texture.
  */
 export const spriteCombine = (
+  key: string,
   sb: PIXI.Sprite,
   s: PIXI.Sprite,
   mx: number = 0,
@@ -495,7 +515,7 @@ export const spriteCombine = (
   s.position.set(s.x + mx, s.y + my); // 전경 스프라이트의 위치를 오프셋 적용하여 설정
 
   // 임시 컨테이너를 하나의 텍스처로 변환하고, 컨테이너를 파괴하여 메모리 해제합니다.
-  const t = containerToSprite(nc, true).texture;
+  const t = containerToSprite(key, nc, true).texture;
   return t;
 };
 
@@ -512,7 +532,7 @@ export const textureSize = (bgt: PIXI.Texture, size: number): PIXI.Texture => {
   s.width = size; // 스프라이트의 너비 설정
   s.height = size; // 스프라이트의 높이 설정
   c.addChild(s); // 스프라이트를 컨테이너에 추가
-  const ns = containerToSprite(c, true); // 컨테이너를 새로운 스프라이트로 변환하고 원본 파괴
+  const ns = containerToSprite("textureSize", c, true); // 컨테이너를 새로운 스프라이트로 변환하고 원본 파괴
   return ns.texture; // 새로운 스프라이트의 텍스처 반환
 };
 

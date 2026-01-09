@@ -109,9 +109,14 @@ export const makeSpriteMove = (p: pTile) => {
      */
     const combineAfterAction = () => {
       // 완성된 조각의 이미지 부분을 퍼즐판의 borderSprite에 합칩니다.
-      f.borderSprite.texture = spriteCombine(f.borderSprite, p.sp);
+      f.borderSprite.texture = spriteCombine(
+        "f_borderSprite",
+        f.borderSprite,
+        p.sp
+      );
       // 완성된 조각의 그림자 부분을 퍼즐판의 backgroundSprite에 합칩니다.
       f.backgroundSprite.texture = spriteCombine(
+        "f_backgroundSprite",
         f.backgroundSprite,
         p.sb,
         f.shadowMargin,

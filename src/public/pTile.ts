@@ -42,7 +42,7 @@ export interface pTile {
  * myJigsawFloor의 전역 상태를 활용하여 퍼즐판에 조각들을 배치합니다.
  * @param {mTile[][]} mTileData - 퍼즐 조각의 마스크 모양 데이터를 담고 있는 2차원 mTile 배열입니다.
  */
-export const makePTiles = async (mTileData: mTile[][]) => {
+export const makePTiles = async () => {
   console.log("makePTiles 시작");
   // 전역으로 관리되는 jigsawFloor 인스턴스를 가져옵니다. (첫 번째 인스턴스 사용)
   const f = myJigsawFloor[0];
@@ -155,8 +155,8 @@ export const getTile = (
 
   // 1. 이미지와 테두리(그림자용) 컨테이너를 각각 스프라이트로 변환합니다.
   // 이 과정에서 컨테이너의 내용을 단일 텍스처로 렌더링하여 스프라이트를 만듭니다.
-  p.sb = containerToSprite(cb, true); // 그림자용 (테두리 포함)
-  p.sp = containerToSprite(cp, true); // 실제 이미지
+  p.sb = containerToSprite("pTile_cb" + f.pTileCount, cb, true); // 그림자용 (테두리 포함)
+  p.sp = containerToSprite("pTile_cp" + f.pTileCount, cp, true); // 실제 이미지
 
   // 2. 그림자 스프라이트(p.sb)에 그림자 효과(블러)를 적용합니다.
   const tS = tileShadow(p.sb);
@@ -168,7 +168,7 @@ export const getTile = (
   const cc = new PIXI.Container();
   cc.addChild(tS, p.sp); // 그림자 스프라이트와 실제 이미지 스프라이트를 컨테이너에 추가
 
-  p.s = containerToSprite(cc); // 최종 조각 스프라이트 생성
+  p.s = containerToSprite("last_sprite" + f.pTileCount, cc); // 최종 조각 스프라이트 생성
   p.s.anchor.set(0.5, 0.5); // 최종 스프라이트의 앵커 포인트를 중앙으로 설정
   p.s.position.set(p.ox, p.oy); // 최종 스프라이트의 위치를 완성 위치로 설정
   p.s.zIndex = 10 + Math.floor(Math.random() * 10); // zIndex를 랜덤하게 설정하여 겹침 순서에 변화를 줍니다.
@@ -176,4 +176,5 @@ export const getTile = (
   p.zIndex = p.nx + p.ny * f.tNum; // 조각의 고유 zIndex를 계산 (퍼즐판 위치 기반)
   pTiles.push(p); // 생성된 pTile을 퍼즐 조각 배열에 추가
   f.bg2.addChild(p.s); // 최종 스프라이트를 배경 레이어에 추가하여 화면에 표시합니다.
+  f.pTileCount++;
 };

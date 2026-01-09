@@ -59,7 +59,6 @@ const jigsawFirstStart = async (r: myReturn) => {
   console.log("filename :", filename);
 
   const mainTexture = PIXI.Assets.get(filename); // 로드된 텍스처 가져오기
-
   const jigsawFloor = new JigsawFloor( // JigsawFloor 인스턴스 생성하여 게임 시작
     r,
     mainTexture, // Loader.shared...texture 대신 Assets.get 사용
@@ -68,82 +67,67 @@ const jigsawFirstStart = async (r: myReturn) => {
     folder,
     file
   );
-
   return jigsawFloor;
 };
-// export const jigsawRestart = (
-//   folder: string,
-//   file: string,
-//   t_num: number = 7
-// ) => {
-//   // 새로운 퍼즐 설정으로 게임을 재시작하는 함수
-//   console.log("folder, file :", folder, file);
-//   cookieWrite({
-//     // 선택한 설정을 쿠키에 저장
-//     jigsawFolder: folder,
-//     jigsawFile: file,
-//     jigsawNumber: String(t_num),
-//   });
-//   location.href = "/"; // 페이지 새로고침하여 재시작
-// };
-
-export const jigsawRestart = async (
+export const jigsawRestart = (
   folder: string,
   file: string,
-  t_num: number = 7,
-  old_tNum: number,
-  old_filename: string
+  t_num: number = 7
 ) => {
   // 새로운 퍼즐 설정으로 게임을 재시작하는 함수
-  const cookie = cookieRead(); // 쿠키 읽기
-  console.log("restart t_num: ", t_num);
-  console.log("restart folder, file :", folder, file);
+  console.log("folder, file :", folder, file);
   cookieWrite({
     // 선택한 설정을 쿠키에 저장
     jigsawFolder: folder,
     jigsawFile: file,
     jigsawNumber: String(t_num),
   });
-  const filename = "assets/jigsaw/" + folder + "/0" + file + ".jpg";
-  const assetsToLoad = [
-    // 필요한 모든 이미지 에셋 미리 로드
-    filename,
-  ];
-  console.log("restart t_num :", t_num);
-  await PIXI.Assets.load(assetsToLoad);
-  const mainTexture = PIXI.Assets.get(filename); // 로드된 텍스처 가져오기
-  const r = myJigsawFloor[0].r;
-  r.mc.removeChildren();
-  myJigsawFloor.pop();
-  await deleteTextures(old_tNum, old_filename);
-  const f = new JigsawFloor( // JigsawFloor 인스턴스 생성하여 게임 시작
-    r,
-    mainTexture, // Loader.shared...texture 대신 Assets.get 사용
-    cookie.jigsawPosition,
-    t_num,
-    folder,
-    file
-  );
-  myJigsawFloor.push(f);
-  f.textureResizeForDisplay();
-  console.log("f 새로 만듬");
-  f.gameStart();
-  document.body.appendChild(f.r.app.canvas);
+  location.href = "/"; // 페이지 새로고침하여 재시작
 };
 
-export const deleteTextures = async (tNum: number, old_filename: string) => {
-  const tileTextures: string[] = [];
-  for (let x = 0; x < tNum; x++) {
-    for (let y = 0; y < tNum; y++) {
-      for (let n = 0; n < 3; n++) {
-        tileTextures.push("" + x + "-" + y + "-" + n);
-      }
-    }
-  }
-  tileTextures.push(old_filename);
-  console.log(tileTextures);
-  await PIXI.Assets.unload(tileTextures);
-};
+// export const jigsawRestart = async (
+//   folder: string,
+//   file: string,
+//   t_num: number = 7,
+//   old_tNum: number,
+//   old_filename: string
+// ) => {
+//   // 새로운 퍼즐 설정으로 게임을 재시작하는 함수
+//   const cookie = cookieRead(); // 쿠키 읽기
+//   console.log("restart t_num: ", t_num);
+//   console.log("restart folder, file :", folder, file);
+//   cookieWrite({
+//     // 선택한 설정을 쿠키에 저장
+//     jigsawFolder: folder,
+//     jigsawFile: file,
+//     jigsawNumber: String(t_num),
+//   });
+//   const filename = "assets/jigsaw/" + folder + "/0" + file + ".jpg";
+//   const assetsToLoad = [
+//     // 필요한 모든 이미지 에셋 미리 로드
+//     filename,
+//   ];
+//   console.log("restart t_num :", t_num);
+//   await PIXI.Assets.load(assetsToLoad);
+//   const mainTexture = PIXI.Assets.get(filename); // 로드된 텍스처 가져오기
+//   const r = myJigsawFloor[0].r;
+//   r.mc.removeChildren();
+//   myJigsawFloor.pop();
+//   await deleteTextures(old_tNum, old_filename);
+//   const f = new JigsawFloor( // JigsawFloor 인스턴스 생성하여 게임 시작
+//     r,
+//     mainTexture, // Loader.shared...texture 대신 Assets.get 사용
+//     cookie.jigsawPosition,
+//     t_num,
+//     folder,
+//     file
+//   );
+//   myJigsawFloor.push(f);
+//   f.textureResizeForDisplay();
+//   console.log("f 새로 만듬");
+//   f.gameStart();
+//   document.body.appendChild(f.r.app.canvas);
+// };
 
 export const myJigsawFloor: JigsawFloor[] = [];
 
@@ -157,6 +141,7 @@ async function main() {
   console.log("f 만듬");
   f.gameStart();
   document.body.appendChild(f.r.app.canvas);
+  // await deleteTextures(f.tNum);
 }
 
 main();

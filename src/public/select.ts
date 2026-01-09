@@ -212,8 +212,8 @@ const mainTitle = () => {
 
   maskContainer.addChild(jigSaw, prev, next); // 마스크 컨테이너에 텍스트 추가
   shadowContainer.addChild(jigSawB, prevB, nextB); // 그림자 컨테이너에 그림자 텍스트 추가
-  const mask = containerToSprite(maskContainer); // 마스크 컨테이너를 스프라이트로 변환
-  const shadow = containerToSprite(shadowContainer); // 그림자 컨테이너를 스프라이트로 변환
+  const mask = containerToSprite("select_mask", maskContainer); // 마스크 컨테이너를 스프라이트로 변환
+  const shadow = containerToSprite("select_shadow", shadowContainer); // 그림자 컨테이너를 스프라이트로 변환
   shadow.filters = [myf]; // 그림자 스프라이트에 블러 필터 적용
   textBackground.mask = mask; // 배경 이미지에 마스크 적용
   shadow.position.set(select.fSize / 80, select.fSize / 80); // 그림자 위치 오프셋
@@ -288,7 +288,8 @@ const mainTitle = () => {
         cookieWrite({ jigsawPosition: "" });
       }
       f.tNum = Number(s); // 선택된 조각 수 설정
-      await jigsawRestart(f.folder, f.file, f.tNum, old_tNum, old_filename); // 선택한 정보로 게임 재시작
+      // await jigsawRestart(f.folder, f.file, f.tNum, old_tNum, old_filename); // 선택한 정보로 게임 재시작
+      await jigsawRestart(f.folder, f.file, f.tNum); // 선택한 정보로 게임 재시작
     }
   };
 

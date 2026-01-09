@@ -3,6 +3,7 @@ import {
   boxButtonDraw,
   containerToSpriteAdd,
   cookieWrite,
+  deleteTextures,
   mobileNow,
   myReturn,
   textureSize,
@@ -41,6 +42,7 @@ export class JigsawFloor {
   cookie: string = ""; // 쿠키 문자열
   mTileData: mTile[][] = []; // 모든 퍼즐 조각의 모양 데이터
   pTiles: pTile[] = []; // 생성된 모든 퍼즐 조각 객체 배열
+  pTileCount: number = 0;
   mobileNow: boolean = mobileNow(); // 모바일 환경 여부
 
   constructor(
@@ -87,7 +89,6 @@ export class JigsawFloor {
   }
   textureResizeForDisplay = () => {
     console.log("displayTextureResize");
-    console.log(this.bgtOriginal, this.bgt);
     this.bgt =
       this.bgtOriginal.width > this.fSize
         ? textureSize(this.bgtOriginal, this.fSize)
@@ -97,8 +98,12 @@ export class JigsawFloor {
   };
   borderPrepare = () => {
     // 퍼즐판(border)과 배경(background)을 상호작용 가능한 스프라이트로 준비하는 함수
-    this.backgroundSprite = containerToSpriteAdd(this.bg1, this.bg0);
-    this.borderSprite = containerToSpriteAdd(this.border);
+    this.backgroundSprite = containerToSpriteAdd(
+      "this_bg1",
+      this.bg1,
+      this.bg0
+    );
+    this.borderSprite = containerToSpriteAdd("this_border", this.border);
     this.borderSprite.interactive = true;
     this.borderSprite.eventMode = "static";
     this.borderSprite.cursor = "pointer";
@@ -178,10 +183,13 @@ export class JigsawFloor {
     this.mTileData = await makeBackground();
     // 2. 모든 조각 생성 (아직 화면에 흩뿌리지는 않음)
 
-    await makePTiles(this.mTileData);
+    await makePTiles();
     // 3. 약간의 딜레이 후, 조각들을 스프라이트화하고 흩뿌림
+
     this.mTileData = [];
+
     this.borderPrepare(); // 4. 퍼즐판 상호작용 준비
+    await deleteTextures(this.tNum);
     selectStart(this.r); // 5. 이미지 선택 화면 시작
   };
 

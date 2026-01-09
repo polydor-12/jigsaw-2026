@@ -5,7 +5,6 @@ import {
   containerToSprite,
   svgToSprite,
   textPrepare,
-  textureToSprite,
   tileShadow,
 } from "./utils";
 import { makeMaskTilesData, mTile } from "./mTile";
@@ -44,7 +43,7 @@ export const makeBackground = async (): Promise<mTile[][]> => {
                 y="0px" width="${f.fSize}px" height="${f.fSize}px" viewBox="0 0 ${f.fSize} ${f.fSize}"
                 enable-background="new 0 0 ${f.fSize} ${f.fSize}"
                 xml:space="preserve">${svgContent}</svg>`;
-  const s = await svgToSprite(svg, f.fSize); // SVG를 스프라이트로 변환
+  const s = await svgToSprite("masking_background", svg, f.fSize); // SVG를 스프라이트로 변환
   s.position.set(f.fSize / 2, f.fSize / 2); // 마스크 스프라이트 위치 설정
   bgd.mask = s; // 배경 이미지에 SVG 마스크 적용
   f.border.addChild(s, bgd); // 마스크와 배경 이미지를 border 컨테이너에 추가
@@ -87,7 +86,7 @@ export const makeBackground = async (): Promise<mTile[][]> => {
   c2.addChild(b_v1, b_v2, b_h1, b_h2); // 모든 그림자 박스를 임시 컨테이너에 추가
 
   c2.zIndex = 0; // 임시 컨테이너의 zIndex 설정
-  let b_s = containerToSprite(c2, true); // 임시 컨테이너의 내용을 하나의 스프라이트로 변환하고 원본 파괴
+  let b_s = containerToSprite("shadow_box", c2, true); // 임시 컨테이너의 내용을 하나의 스프라이트로 변환하고 원본 파괴
   b_s = tileShadow(b_s); // 그림자 스프라이트에 블러 효과 적용
   // download_sprite_as_png(f.renderer, b_s, String(f.tNum) + "b.png") // 디버깅용으로 주석 처리됨
   b_s.position.set(f.shadowMargin, f.shadowMargin); // 그림자 위치 조정
