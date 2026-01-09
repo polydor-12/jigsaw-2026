@@ -246,15 +246,20 @@ export const getSvgTileTexture = async (tile: mTile) => {
     // }
   }
 
-  const textures = await texturesFromDataWithKeys(dataWithKey);
-  const s = textureToSprite(textures[0] as PIXI.Texture, f.tSize);
+  await texturesFromDataWithKeys(dataWithKey);
+
+  const blank = PIXI.Texture.from(tile.x + "-" + tile.y + "-" + 0);
+  const image = PIXI.Texture.from(tile.x + "-" + tile.y + "-" + 1);
+  const border = PIXI.Texture.from(tile.x + "-" + tile.y + "-" + 2);
+
+  const s = textureToSprite(blank as PIXI.Texture, f.tSize);
   // 타일의 최종 완성 위치 (픽셀 좌표)를 계산합니다.
   tile.x_p = f.tSize / 2 + ((f.tSize * 5) / 7) * tile.x;
   tile.y_p = f.tSize / 2 + ((f.tSize * 5) / 7) * tile.y;
   s.position.set(tile.x_p, tile.y_p); // 스프라이트 위치 설정
   f.bg1.addChild(s); // bg1 컨테이너에 빈 조각 스프라이트 추가
 
-  getTile(tile, textures[1] as PIXI.Texture, textures[2] as PIXI.Texture);
+  getTile(tile, image as PIXI.Texture, border as PIXI.Texture);
 };
 
 /**

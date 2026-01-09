@@ -205,8 +205,9 @@ export const dataWithKeyToTextureAll = (dataWithKeys: DataWithKey[]) => {
 };
 
 export const texturesFromDataWithKeys = async (dataWithKeys: DataWithKey[]) => {
-  const src = dataWithKeys.map((data) => data.src);
-  return await PIXI.Assets.load<PIXI.Texture>(src);
+  dataWithKeyToTextureAll(dataWithKeys);
+  const alias = dataWithKeys.map((data) => data.alias);
+  await PIXI.Assets.load<PIXI.Texture>(alias);
 };
 
 export const deleteTextures = async (tNum: number) => {
