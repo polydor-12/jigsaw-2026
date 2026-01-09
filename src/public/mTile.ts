@@ -197,9 +197,7 @@ export const getSvgTileTexture = async (tile: mTile) => {
   // 3가지 종류의 텍스처(blank, image, border)를 생성하기 위해 3번 반복합니다.
   const f = myJigsawFloor[0];
   const dataWithKey: DataWithKey[] = [];
-  // let blank: PIXI.Texture | null = null;
-  // let image: PIXI.Texture | null = null;
-  // let border: PIXI.Texture | null = null;
+
   for (let sw = 0; sw < 3; sw++) {
     svgData.svgContent_front = "";
     svgData.svgContent_end = "";
@@ -221,29 +219,9 @@ export const getSvgTileTexture = async (tile: mTile) => {
     }
     // 최종적으로 조합된 SVG 문자열을 PIXI.Texture로 변환합니다.
 
-    // const texture = await svgToTextureWithKey(
-    //   tile.x + "-" + tile.y + "-" + sw,
-    //   // setSvgWidthHeightByDom(svg(svgData), f.tSize)
-    //   svg(svgData)
-    // );
-
     dataWithKey.push(
       svgToDataWithKey(tile.x + "-" + tile.y + "-" + sw, svg(svgData))
     );
-
-    // 생성된 텍스처를 mTile 객체의 적절한 속성에 할당합니다.
-
-    // switch (sw) {
-    //   case 0:
-    //     blank = texture;
-    //     break;
-    //   case 1:
-    //     image = texture;
-    //     break;
-    //   case 2:
-    //     border = texture;
-    //     break;
-    // }
   }
 
   await texturesFromDataWithKeys(dataWithKey);
@@ -252,14 +230,14 @@ export const getSvgTileTexture = async (tile: mTile) => {
   const image = PIXI.Texture.from(tile.x + "-" + tile.y + "-" + 1);
   const border = PIXI.Texture.from(tile.x + "-" + tile.y + "-" + 2);
 
-  const s = textureToSprite(blank as PIXI.Texture, f.tSize);
+  const s = textureToSprite(blank, f.tSize);
   // 타일의 최종 완성 위치 (픽셀 좌표)를 계산합니다.
   tile.x_p = f.tSize / 2 + ((f.tSize * 5) / 7) * tile.x;
   tile.y_p = f.tSize / 2 + ((f.tSize * 5) / 7) * tile.y;
   s.position.set(tile.x_p, tile.y_p); // 스프라이트 위치 설정
   f.bg1.addChild(s); // bg1 컨테이너에 빈 조각 스프라이트 추가
 
-  getTile(tile, image as PIXI.Texture, border as PIXI.Texture);
+  getTile(tile, image, border);
 };
 
 /**

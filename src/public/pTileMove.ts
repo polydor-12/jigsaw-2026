@@ -303,7 +303,7 @@ export const makeSpriteMove = (p: pTile) => {
  * @param {pTile} p - 움직일 pTile 객체.
  * @param {boolean} s - true이면 랜덤 위치로, false이면 원래 위치(p.ox, p.oy)로 이동합니다.
  */
-export const tileScatter = (p: pTile, s: boolean = false) => {
+export const tileScatter2 = (p: pTile, s: boolean = false) => {
   const f = myJigsawFloor[0]; // 현재 게임 플로어 인스턴스
 
   let x: number, y: number;
@@ -342,4 +342,47 @@ export const tileScatter = (p: pTile, s: boolean = false) => {
     }
   };
   tMove(); // 애니메이션 시작
+};
+
+export const tileScatter = (
+  p: pTile,
+  s: boolean = false,
+  speedPerSecond?: number // optional: 초당 이동 픽셀 수. 지정 안하면 v 기반 기본값 사용
+) => {
+  const f = myJigsawFloor[0];
+  const app = f.r.app;
+  const targetX = s ? Math.floor(Math.random() * f.fSize) : p.ox;
+  const targetY = s
+    ? Math.floor(Math.random() * (f.fSize_h - f.fSize) + f.fSize)
+    : p.oy;
+
+  // v는 원래 프레임 수 기준(원래 로직 유지용)
+  const v = f.mobileNow ? 25 : 60;
+  const initialDist = Math.hypot(p.s.x - targetX, p.s.y - targetY);
+  // 기본 speed: initialDist 를 v 프레임(=v/60초)에 걸쳐 이동시키는 초당 속도
+  const defaultSpeed = initialDist / (v / 60);
+  const speed = speedPerSecond ?? defaultSpeed;
+
+  // Pixi v8에서의 티커 콜백 타입(대부분) : (delta: number) => void
+  const onTick = () => {
+    // delta 는 "표준 프레임(60fps) 대비 프레임 수 비율" (따라서 지난 시간 초 근사 = delta / 60)
+    const dtSec = 1 / 60;
+    const moveDist = speed * dtSec;
+
+    const dx = targetX - p.s.x;
+    const dy = targetY - p.s.y;
+    const dist = Math.hypot(dx, dy);
+
+    if (dist <= moveDist || dist === 0) {
+      p.s.x = targetX;
+      p.s.y = targetY;
+      app.ticker.remove(onTick);
+      return;
+    }
+
+    p.s.x += (dx / dist) * moveDist;
+    p.s.y += (dy / dist) * moveDist;
+  };
+
+  app.ticker.add(onTick);
 };
